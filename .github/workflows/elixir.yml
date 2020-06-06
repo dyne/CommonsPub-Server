@@ -1,0 +1,38 @@
+name: Elixir
+
+on: [push]
+
+jobs:
+  build:
+    name: The Build
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:4
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgres:10
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports: ["5432:5432"]
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Run Makefile
+      run: |
+        which make
+        make
+        make dev-setup
+        make dev-test
+      env:
+        TEST_DB_HOST: localhost
+        TEST_DB_USERNAME: postgres
+        TEST_DB_PASSWORD: postgres
+        TEST_DB_NAME: postgres
+        PG_PORT: ${{ job.services.postgres.ports['5432'] }}
