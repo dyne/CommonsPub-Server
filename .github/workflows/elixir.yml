@@ -1,0 +1,24 @@
+name: Elixir
+
+on: [push]
+
+jobs:
+  build:
+    name: The Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Run Makefile
+      run: |
+        which make
+        make
+        make dev-setup
+        make dev-test
+      env:
+        TEST_DB_HOST: localhost
+        TEST_DB_USERNAME: postgres
+        TEST_DB_PASSWORD: postgres
+        TEST_DB_NAME: postgres
+        PG_PORT: ${{ job.services.postgres.ports['5432'] }}
