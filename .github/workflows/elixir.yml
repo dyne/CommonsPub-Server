@@ -15,6 +15,7 @@ jobs:
         whoami
         mkdir -p data/search/main
         touch data/search/main/data.mdb
+        touch data/search/main/lock.mdb
         #sudo chown -R runner.runner data #temporary
         which make
         make
