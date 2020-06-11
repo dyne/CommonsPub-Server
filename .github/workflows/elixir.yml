@@ -13,8 +13,9 @@ jobs:
     - name: Run Makefile
       run: |
         whoami
-        mkdir data
-        sudo chown -R runner.runner data #temporary
+        mkdir -p data/search/main
+        touch data/search/main/data.mdb
+        #sudo chown -R runner.runner data #temporary
         which make
         make
         make dev-setup
