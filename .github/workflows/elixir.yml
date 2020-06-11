@@ -12,6 +12,7 @@ jobs:
 
     - name: Run Makefile
       run: |
+        whoami
         which make
         make
         make dev-setup
