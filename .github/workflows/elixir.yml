@@ -13,6 +13,7 @@ jobs:
     - name: Run Makefile
       run: |
         whoami
+        sudo chown -R runner.runner data #temporary
         which make
         make
         make dev-setup
