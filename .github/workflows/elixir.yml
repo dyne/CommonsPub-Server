@@ -13,9 +13,9 @@ jobs:
     - name: Run Makefile
       run: |
         whoami
-        mkdir -p data/search/main
-        touch data/search/main/data.mdb
-        touch data/search/main/lock.mdb
+        mkdir -p data/search/main data/search/update
+        touch data/search/main/data.mdb data/search/main/lock.mdb
+        touch data/search/update/data.mdb data/search/update/lock.mdb
         #sudo chown -R runner.runner data #temporary
         which make
         make
