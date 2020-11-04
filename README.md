@@ -1,20 +1,24 @@
 # ZenPub Federated Server
 
+[![software by Dyne.org](https://files.dyne.org/software_by_dyne.png)](http://www.dyne.org)
+
 ## About the project
 
-ZenPub is a WIP backend for the Reflow project, which has received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No 820937.
+ZenPub is the core software component of [ReflowOS](https://reflowos.dyne.org) the open source hub to operate [circular economy](https://en.wikipedia.org/wiki/Circular_economy) networks and manage material flows in a city according to the [Valueflows](https://valueflo.ws) ontology.
 
-It is a flavour of [CommonsPub](http://commonspub.org), a federated app ecosystem based on the `ActivityPub` and `ActivityStreams` web standards).
+ZenPub is a flavour of the [CommonsPub](http://commonspub.org) software implementing [ActivityPub](http://activitypub.rocks/) and `ActivityStreams` web standards.
 
-This is the main repository, written in Elixir (running on Erlang/OTP).
+This is the main repository, written in Elixir (running on Erlang/OTP), it is configured to use [PostgreSQL](https://www.postgresql.org/) as storage database.
 
-The federation API uses [ActivityPub](http://activitypub.rocks/) and the client API uses [GraphQL](https://graphql.org/).
+The API offers access via [GraphQL](https://graphql.org/).
 
 ---
 
 ## Documentation
 
 Do you want to...
+
+- Understand the goals and use-cases of this projet? Read our [manual](https://reflowos.dyne.org).
 
 - Read about the CommonsPub architecture? Read our [overview](./docs/ARCHITECTURE.md).
 
@@ -26,44 +30,28 @@ Do you want to...
 
 ---
 
-## Forks and branches
-
-### Flavours
-
-CommonsPub comes in different flavours, which are made up of a combination of extensions and probably some custom config and branding. Each flavour has its own branch in the [CommonsPub repo](https://gitlab.com/CommonsPub/Server):
-
-- `flavour/commonspub` - Contains the generic flavour of [CommonsPub](http://commonspub.org) (currently packaged with all extensions)
-- `flavour/zenpub` - WIP [ZenPub](https://github.com/dyne/zenpub/) flavour (which will use [ZenRoom](https://zenroom.org/) for public key signing and end-to-end encryption
-- `flavour/haha` - WIP for [HAHA Academy](https://haha.academy/)
-
-### Extensions
+## Extensions
 
 Features are being developed in seperate namespaces in order to make the software more modular (to then be spun out into individual libraries):
 
-- `lib/activity_pub` and `lib/activity_pub_web` - Implementation of the [ActivityPub](http://activitypub.rocks/) federation protocol.
-- `lib/extensions/value_flows` - WIP implementation of the [ValueFlows](https://valueflo.ws/) economic vocabulary, to power distributed economic networks for the next economy.
+- `lib/extensions/value_flows` - implementation of the [ValueFlows](https://valueflo.ws/) economic taxonomy
+- `lib/activity_pub_adapter` - integration with a library that provides [ActivityPub](http://activitypub.rocks/) federation protocol.
 - `lib/extensions/organisations` - Adds functionality for organisations to maintain a shared profile.
 - `lib/extensions/tags` - For tagging, @ mentions, and user-maintained taxonomies of categories.
 - `lib/extensions/measurements` - Various units and measures for indicating amounts (incl duration).
 - `lib/extensions/locales` - Extensive schema of languages/countries/etc. The data is also open and shall be made available oustide the repo.
 - `lib/extensions/geolocations` - Shared 'spatial things' database for tagging objects with a location.
 
-#### Please **avoid mixing flavours!**
-
-For example, do not merge directly from `flavour/commonspub`-->`flavour/zenpub`.
-
----
-
 ## Licensing
 
-CommonsPub is licensed under the GNU Affero GPL version 3.0 (GNU AGPLv3).
+ZenPub is licensed under the GNU Affero GPL version 3.0 (GNU AGPLv3).
 
 Copyright © 2017-2020 by all contributors.
 
 This repository includes code from:
 
 - [CommonsPub](https://commonspub.org), copyright (c) 2018-2020, CommonsPub Contributors
-- [Reflow](https://reflowproject.eu), copyright (c) 2020 Dyne.org foundation, Amsterdam
+- [REFLOW project](https://reflowproject.eu), copyright (c) 2020 Dyne.org foundation
 - [HAHA Academy](https://haha.academy/), copyright (c) 2020, Mittetulundusühing HAHA Academy
 - [MoodleNet](http://moodle.net), copyright (c) 2018-2020 Moodle Pty Ltd
 - [Pleroma](https://pleroma.social), copyright (c) 2017-2020, Pleroma Authors

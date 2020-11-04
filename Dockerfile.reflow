@@ -1,0 +1,55 @@
+FROM elixir:1.10.4-alpine
+
+ENV HOME=/opt/app/ TERM=xterm
+
+WORKDIR $HOME
+
+# dev tools
+RUN apk update && \
+    apk add --no-cache bash curl inotify-tools
+
+# various dependencies of dependencies
+RUN apk add --no-cache git \
+    rust cargo \
+    npm \
+    build-base \
+    mailcap \
+    ca-certificates openssh-client openssl-dev \
+    tzdata \
+    gettext
+
+# dependencies for comeonin
+RUN apk add --no-cache cmake make gcc libc-dev
+
+# install tor and daemontools
+RUN apk add --no-cache tor
+
+# copy deploy configs
+COPY config/deployment/ /
+
+# download zenroom
+RUN curl https://files.dyne.org/zenroom/nightly/zenroom-linux-amd64 > /usr/local/bin/zenroom \
+	&& chmod +x /usr/local/bin/zenroom
+
+# Download latest tor-dam musl binaries from files.dyne.org
+RUN wget -q https://files.dyne.org/tor-dam/nightly/dam-client  \
+	&& wget -q https://files.dyne.org/tor-dam/nightly/dam-dir  \
+	&& mv dam-* /usr/local/bin && chmod a+x /usr/local/bin/dam-*
+
+ENV	TORDAM_GIT=github.com/dyne/tor-dam
+# Configure Tor Controlport auth
+# COPY config/deployment/etc/tor/torrc /etc/tor/torrc
+RUN torpass=`echo "print(OCTET.random(16):url64())" | zenroom` \
+	&& git clone https://$TORDAM_GIT && cd tor-dam \
+	&& sed -i python/damhs.py -e "s/topkek/$torpass/" \
+	&& make install && make -C contrib install-init \
+	&& torpasshash=`HOME=/var/lib/tor tor --hash-password "$torpass"` \
+	&& sed -e 's/HashedControlPassword .*//' -i /etc/tor/torrc \
+	&& echo "HashedControlPassword $torpasshash" >> /etc/tor/torrc \
+	&& sed -e 's/Log notice .*/Log notice file \/var\/log\/tor\/tor.log/' -i /etc/tor/torrc
+
+EXPOSE 4000/tcp
+EXPOSE 4004/tcp
+
+# ENTRYPOINT ["iex", "-S", "mix", "phx.server"]
+CMD trap 'exit' INT; iex -S mix phx.server

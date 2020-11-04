@@ -1,0 +1,12 @@
+User sawroom
+PIDFile /run/lock/tor.pid
+Log notice syslog
+DataDirectory /var/lib/tor/data
+
+ControlPort 9051
+CookieAuthentication 1
+
+SocksPort 9050
+
+ClientRejectInternalAddresses 1
+HashedControlPassword 16:3633B10241925B7F602E83A64F0ABBE264F0C1928A1BE003D7ED691CFE
