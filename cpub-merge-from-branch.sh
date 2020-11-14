@@ -22,7 +22,7 @@ echo "Merging, without commiting yet"
 git merge --no-ff --no-commit ${FROM_BRANCH}
 
 echo "Restoring files which we don't want overwritten (add any core files that should be different in each flavour to the below line in the script)"
-for file in README.md 
+for file in README.md *.reflow config/deployment/etc/tor/torrc
 do
     git reset HEAD ${file}
     git checkout -- ${file}
