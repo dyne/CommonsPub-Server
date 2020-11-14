@@ -2,7 +2,7 @@
 defmodule CommonsPub.Profiles do
   alias CommonsPub.{Common, Repo}
   alias CommonsPub.GraphQL.{Fields, Page}
-  alias CommonsPub.Common.Contexts
+  alias CommonsPub.Contexts
 
   alias CommonsPub.Profiles.Profile
   alias CommonsPub.Profiles.Queries
@@ -178,15 +178,11 @@ defmodule CommonsPub.Profiles do
 
   def soft_delete(%CommonsPub.Profiles.Profile{} = profile) do
     Repo.transact_with(fn ->
-      with {:ok, profile} <- Common.soft_delete(profile) do
+      with {:ok, profile} <- Common.Deletion.soft_delete(profile) do
         {:ok, profile}
       end
     end)
   end
 
-  # TODO move these to a common module
 
-  @doc "conditionally update a map"
-  def maybe_put(map, _key, nil), do: map
-  def maybe_put(map, key, value), do: Map.put(map, key, value)
 end

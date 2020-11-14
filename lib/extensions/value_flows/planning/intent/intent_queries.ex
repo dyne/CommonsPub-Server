@@ -31,10 +31,6 @@ defmodule ValueFlows.Planning.Intent.Queries do
     Enum.reduce(specs, q, &join_to(&2, &1, jq))
   end
 
-  def join_to(q, :context, jq) do
-    join(q, jq, [intent: c], c2 in assoc(c, :context), as: :context)
-  end
-
   def join_to(q, {:follow, follower_id}, jq) do
     join(q, jq, [intent: c], f in Follow,
       as: :follow,
@@ -50,19 +46,17 @@ defmodule ValueFlows.Planning.Intent.Queries do
     join(q, jq, [intent: c], t in assoc(c, :tags), as: :tags)
   end
 
-  # def join_to(q, :provider, jq) do
-  #   join q, jq, [follow: f], c in assoc(f, :provider), as: :pointer
-  # end
+  def join_to(q, :effort_quantity, jq) do
+    join(q, jq, [intent: c], q in assoc(c, :effort_quantity), as: :effort_quantity)
+  end
 
-  # def join_to(q, :receiver, jq) do
-  #   join q, jq, [follow: f], c in assoc(f, :receiver), as: :pointer
-  # end
+  def join_to(q, :resource_quantity, jq) do
+    join(q, jq, [intent: c], q in assoc(c, :resource_quantity), as: :resource_quantity)
+  end
 
-  # def join_to(q, :follower_count, jq) do
-  #   join q, jq, [intent: c],
-  #     f in FollowerCount, on: c.id == f.context_id,
-  #     as: :follower_count
-  # end
+  def join_to(q, :available_quantity, jq) do
+    join(q, jq, [intent: c], q in assoc(c, :available_quantity), as: :available_quantity)
+  end
 
   ### filter/2
 
@@ -75,8 +69,7 @@ defmodule ValueFlows.Planning.Intent.Queries do
   ## by preset
 
   def filter(q, :default) do
-    filter(q, [:deleted])
-    # filter q, [:deleted, {:preload, :provider}, {:preload, :receiver}]
+    filter(q, [:deleted, preload: :quantities])
   end
 
   def filter(q, :offer) do
@@ -86,6 +79,8 @@ defmodule ValueFlows.Planning.Intent.Queries do
   def filter(q, :need) do
     where(q, [intent: c], is_nil(c.provider_id))
   end
+
+
 
   ## by join
 
@@ -256,20 +251,26 @@ defmodule ValueFlows.Planning.Intent.Queries do
     select(q, [intent: c], {field(c, ^key), count(c.id)})
   end
 
-  def filter(q, {:preload, :provider}) do
-    preload(q, [pointer: p], provider: p)
-  end
-
-  def filter(q, {:preload, :receiver}) do
-    preload(q, [pointer: p], receiver: p)
-  end
-
-  def filter(q, {:preload, :at_location}) do
+  def filter(q, {:preload, :all}) do
     q
-    |> join_to(:geolocation)
-    |> preload(:at_location)
+    |> preload([
+      :provider,
+      :receiver,
+      :input_of,
+      :output_of,
+      :creator,
+      :context,
+      :at_location,
+      :resource_inventoried_as,
+      :resource_conforms_to,
+    ])
+    |> filter({:preload, :quantities})
+  end
 
-    # preload(q, [geolocation: g], at_location: g)
+  def filter(q, {:preload, :quantities}) do
+    q
+    |> join_to([:available_quantity, :effort_quantity, :resource_quantity])
+    |> preload([:available_quantity, :effort_quantity, :resource_quantity])
   end
 
   # pagination

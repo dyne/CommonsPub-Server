@@ -142,9 +142,6 @@ defmodule CommonsPub.Communities.Queries do
     order_by(q, [community: c, follower_count: fc], desc: coalesce(fc.count, 0), desc: c.id)
   end
 
-  def filter(q, {:select, :delete}) do
-    select(q, [community: c], %{id: c.id, inbox_id: c.inbox_id, outbox_id: c.outbox_id})
-  end
 
   def filter(q, {:page, [desc: [followers: page_opts]]}) do
     q

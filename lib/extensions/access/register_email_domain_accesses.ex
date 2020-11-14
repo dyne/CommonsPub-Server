@@ -20,5 +20,5 @@ defmodule CommonsPub.Access.RegisterEmailDomainAccesses do
          do: {:error, "Domain already allowlisted"}
   end
 
-  def soft_delete(%RegisterEmailDomainAccess{} = it), do: Common.soft_delete(it)
+  def soft_delete(%RegisterEmailDomainAccess{} = it), do: Common.Deletion.soft_delete(it)
 end

@@ -18,7 +18,7 @@ defmodule CommonsPub.Web.Page.Category do
   end
 
   def handle_params(%{} = params, _url, socket) do
-    # obj = context_fetch(params["id"])
+    # obj = CommonsPub.Contexts.context_fetch(params["id"])
 
     top_level_category = System.get_env("TOP_LEVEL_CATEGORY", "")
 
@@ -40,7 +40,7 @@ defmodule CommonsPub.Web.Page.Category do
      socket
      |> assign(current_user: socket.assigns.current_user)
      |> assign(category: category)
-     |> assign(object_type: context_type(category))
+     |> assign(object_type: CommonsPub.Contexts.context_type(category))
      |> assign(current_context: category)}
   end
 end

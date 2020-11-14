@@ -9,7 +9,7 @@ defmodule CommonsPub.Web.Endpoint do
   @session_options [
     store: :cookie,
     key: "_session_key",
-    signing_salt: "CqAoopA2"
+    signing_salt: CommonsPub.Config.get(:signing_salt)
   ]
 
   if is_binary(System.get_env("SENTRY_DSN")) and is_binary(System.get_env("SENTRY_ENV")) do

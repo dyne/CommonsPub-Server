@@ -7,7 +7,7 @@ defmodule CommonsPub.Tag.Categories do
     # GraphQL,
     Repo,
     GraphQL.Page,
-    Common.Contexts,
+    Contexts,
     Activities,
     Feeds
   }
@@ -268,8 +268,8 @@ defmodule CommonsPub.Tag.Categories do
   def update(user, %Category{} = category, attrs) do
     category = Repo.preload(category, [:profile, :character])
 
-    IO.inspect(category)
-    IO.inspect(attrs)
+    # IO.inspect(category)
+    # IO.inspect(attrs)
 
     Repo.transact_with(fn ->
       # :ok <- publish(category, :updated)
@@ -358,14 +358,10 @@ defmodule CommonsPub.Tag.Categories do
     :ok
   end
 
-  # TODO move this common module
-  @doc "conditionally update a map"
-  def maybe_put(map, _key, nil), do: map
-  def maybe_put(map, key, value), do: Map.put(map, key, value)
 
   def soft_delete(%Category{} = c) do
     Repo.transact_with(fn ->
-      with {:ok, c} <- Common.soft_delete(c) do
+      with {:ok, c} <- Common.Deletion.soft_delete(c) do
         {:ok, c}
       else
         e ->

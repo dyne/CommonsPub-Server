@@ -79,10 +79,6 @@ defmodule Measurement.Unit.GraphQL do
     })
   end
 
-  # def fetch_community_edge(_, ids) do
-  #   {:ok, fields} = Communities.fields(&(&1.id), [:default, id: ids])
-  #   fields
-  # end
 
   def create_unit(%{unit: %{in_scope_of: context_id} = attrs}, info) do
     Repo.transact_with(fn ->

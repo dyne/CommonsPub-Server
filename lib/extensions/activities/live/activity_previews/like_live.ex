@@ -9,7 +9,7 @@ defmodule CommonsPub.Web.Component.LikePreviewLive do
 
   def update(assigns, socket) do
     # IO.inspect(like_pre_prep: assigns.like)
-    like = prepare_context(assigns.like)
+    like = CommonsPub.Contexts.prepare_context(assigns.like)
 
     # IO.inspect(like_post_prep: like)
 

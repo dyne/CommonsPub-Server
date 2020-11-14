@@ -7,12 +7,12 @@ defmodule CommonsPub.Web.GraphQL.CommunitiesResolver do
   alias CommonsPub.Communities.Community
 
   alias CommonsPub.GraphQL.{
-    # FetchFields,
+    FetchFields,
     Page,
     FetchPage,
     # FetchPages,
     ResolveField,
-    # ResolveFields,
+    ResolveFields,
     ResolvePage,
     ResolvePages,
     ResolveRootPage
@@ -95,7 +95,7 @@ defmodule CommonsPub.Web.GraphQL.CommunitiesResolver do
     {:ok, Page.new([], [], & &1.id, %{})}
   end
 
-  def outbox_edge(%Community{outbox_id: id}, page_opts, info) do
+  def outbox_edge(%Community{character: %{outbox_id: id}}, page_opts, info) do
     with :ok <- GraphQL.not_in_list_or_empty_page(info) do
       ResolvePage.run(%ResolvePage{
         module: __MODULE__,
@@ -120,6 +120,24 @@ defmodule CommonsPub.Web.GraphQL.CommunitiesResolver do
   end
 
   def last_activity_edge(_, _, _info), do: {:ok, DateTime.utc_now()}
+
+  def context_community_edge(%{context_id: id}, _, info) do
+    ResolveFields.run(%ResolveFields{
+      module: __MODULE__,
+      fetcher: :fetch_parent_community_edge,
+      context: id,
+      info: info
+    })
+  end
+
+  def fetch_parent_community_edge(_, ids) do
+    FetchFields.run(%FetchFields{
+      queries: Communities.Queries,
+      query: Community,
+      group_fn: & &1.id,
+      filters: [:default, id: ids]
+    })
+  end
 
   ### mutations
 

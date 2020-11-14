@@ -50,7 +50,7 @@ for _ <- 1..2, do: fake_resource!(random_user.(), maybe_random_community.())
 for _ <- 1..2, do: fake_resource!(random_user.(), maybe_random_collection.())
 
 # define some tags/categories
-if(Code.ensure_loaded?(CommonsPub.Tag.Simulate)) do
+if(CommonsPub.Config.module_enabled?(CommonsPub.Tag.Simulate)) do
   for _ <- 1..2 do
     category = CommonsPub.Tag.Simulate.fake_category!(random_user.())
     _subcategory = CommonsPub.Tag.Simulate.fake_category!(random_user.(), category)
@@ -58,7 +58,7 @@ if(Code.ensure_loaded?(CommonsPub.Tag.Simulate)) do
 end
 
 # define some geolocations
-if(Code.ensure_loaded?(Geolocation.Simulate)) do
+if(CommonsPub.Config.module_enabled?(Geolocation.Simulate)) do
   for _ <- 1..2,
       do: Geolocation.Simulate.fake_geolocation!(random_user.(), maybe_random_community.())
 
@@ -67,12 +67,12 @@ if(Code.ensure_loaded?(Geolocation.Simulate)) do
 end
 
 # define some units
-if(Code.ensure_loaded?(Measurement.Simulate)) do
+if(CommonsPub.Config.module_enabled?(Measurement.Simulate)) do
   for _ <- 1..2 do
     unit1 = Measurement.Simulate.fake_unit!(random_user.(), maybe_random_community.())
     unit2 = Measurement.Simulate.fake_unit!(random_user.(), maybe_random_collection.())
 
-    if(Code.ensure_loaded?(ValueFlows.Simulate)) do
+    if(CommonsPub.Config.module_enabled?(ValueFlows.Simulate)) do
       for _ <- 1..2,
           do:
             ValueFlows.Simulate.fake_intent!(
@@ -85,7 +85,7 @@ if(Code.ensure_loaded?(Measurement.Simulate)) do
 end
 
 # conduct some fake economic activities
-if(Code.ensure_loaded?(ValueFlows.Simulate)) do
+if(CommonsPub.Config.module_enabled?(ValueFlows.Simulate)) do
   for _ <- 1..2 do
     user = random_user.()
 

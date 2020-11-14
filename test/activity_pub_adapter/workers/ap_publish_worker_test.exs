@@ -123,7 +123,7 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
   end
 
   describe "deletes" do
-    test "it federates an undo follow activity" do
+    test "/ federates an undo follow activity" do
       user = fake_user!()
       community = fake_user!() |> fake_community!()
       {:ok, follow} = CommonsPub.Follows.create(user, community, %{is_local: true})
@@ -136,7 +136,7 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
       assert activity.data["type"] == "Undo"
     end
 
-    test "it federates an undo like activity do" do
+    test "/ federates an undo like activity" do
       user = fake_user!()
       community = fake_community!(user)
       user2 = fake_user!()
@@ -153,9 +153,9 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
       assert activity.data["type"] == "Undo"
     end
 
-    test "users" do
+    test "user" do
       user = fake_user!()
-      {:ok, user} = CommonsPub.Users.soft_delete(user, user)
+      {:ok, _deleted} = CommonsPub.Users.soft_delete(user, user)
 
       assert {:ok, activity} =
                APPublishWorker.perform(%{args: %{"context_id" => user.id, "op" => "delete"}})
@@ -163,10 +163,10 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
       assert activity.data["type"] == "Delete"
     end
 
-    test "communities" do
+    test "community" do
       user = fake_user!()
       comm = fake_community!(user)
-      {:ok, comm} = CommonsPub.Communities.soft_delete(user, comm)
+      {:ok, _deleted} = CommonsPub.Communities.soft_delete(user, comm)
 
       assert {:ok, activity} =
                APPublishWorker.perform(%{args: %{"context_id" => comm.id, "op" => "delete"}})
@@ -174,11 +174,11 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
       assert activity.data["type"] == "Delete"
     end
 
-    test "collections" do
+    test "collection" do
       user = fake_user!()
       comm = fake_community!(user)
       coll = fake_collection!(user, comm)
-      {:ok, coll} = CommonsPub.Collections.soft_delete(user, coll)
+      {:ok, _deleted} = CommonsPub.Collections.soft_delete(user, coll)
 
       assert {:ok, activity} =
                APPublishWorker.perform(%{args: %{"context_id" => coll.id, "op" => "delete"}})
@@ -186,13 +186,13 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
       assert activity.data["type"] == "Delete"
     end
 
-    test "comments" do
+    test "comment" do
       user = fake_user!()
       community = fake_community!(user)
       thread = fake_thread!(user, community)
       comment = fake_comment!(user, thread, %{is_local: true})
       Oban.drain_queue(queue: :mn_ap_publish)
-      {:ok, comment} = CommonsPub.Threads.Comments.soft_delete(user, comment)
+      {:ok, _deleted} = CommonsPub.Threads.Comments.soft_delete(user, comment)
 
       assert {:ok, activity} =
                APPublishWorker.perform(%{args: %{"context_id" => comment.id, "op" => "delete"}})
@@ -200,13 +200,13 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
       assert activity.data["type"] == "Delete"
     end
 
-    test "resources" do
+    test "resource" do
       user = fake_user!()
       community = fake_community!(user)
       collection = fake_collection!(user, community)
       resource = fake_resource!(user, collection)
       Oban.drain_queue(queue: :mn_ap_publish)
-      {:ok, resource} = CommonsPub.Resources.soft_delete(user, resource)
+      {:ok, _deleted} = CommonsPub.Resources.soft_delete(user, resource)
 
       assert {:ok, activity} =
                APPublishWorker.perform(%{args: %{"context_id" => resource.id, "op" => "delete"}})
@@ -216,7 +216,7 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
   end
 
   describe "updates" do
-    test "users" do
+    test "user" do
       user = fake_user!()
       {:ok, user} = CommonsPub.Users.update(user, %{name: "Cool Name"})
 
@@ -227,7 +227,7 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
       assert activity.data["object"]["name"] == "Cool Name"
     end
 
-    test "communities" do
+    test "community" do
       user = fake_user!()
       comm = fake_community!(user)
       {:ok, comm} = CommonsPub.Communities.update(user, comm, %{name: "Cool Name"})
@@ -239,7 +239,7 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
       assert activity.data["object"]["name"] == "Cool Name"
     end
 
-    test "collections" do
+    test "collection" do
       user = fake_user!()
       comm = fake_community!(user)
       coll = fake_collection!(user, comm)

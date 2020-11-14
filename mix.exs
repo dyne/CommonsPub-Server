@@ -2,8 +2,7 @@
 defmodule CommonsPub.Mixfile do
   use Mix.Project
 
-  @library_dev_mode false
-  @library_dev_dir "./extensions/"
+  @library_dev_mode true
 
   # General configuration of the project
   def project do
@@ -38,41 +37,29 @@ defmodule CommonsPub.Mixfile do
         ],
         output: "docs/exdoc"
       ],
+      test_paths: existing_paths(["test", "libs/activitypub/test"]), # can add test dirs to include, eg: "libs/activitypub/test" (if so, the corresponding support dir should also be added to elixirc_paths below)
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test]
     ]
   end
 
-  # Configuration for the OTP application.
-  # Type `mix help compile.app` for more information.
-  def application do
-    [
-      mod: {CommonsPub.Application, []},
-      extra_applications: [
-        :logger,
-        :runtime_tools,
-        :os_mon,
-        :hackney,
-        :mime,
-        :belt,
-        :bamboo,
-        :bamboo_smtp
-      ]
-    ]
-  end
-
-  defp releases do
-    [
-      commons_pub: [
-        include_executables_for: [:unix]
-      ]
-    ]
-  end
-
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(:dev), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: existing_paths(["lib", "test/support", "libs/activitypub/test/support"]) #
+  defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(_), do: ["lib"]
+
+  # Specifies mix commands
+  defp aliases do
+    [
+      "ecto.rebuild": ["ecto.reset", "ecto.seeds"],
+      "ecto.setup": ["ecto.create", "ecto.migrate"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      "ecto.seeds": ["run priv/repo/seeds.exs"],
+      "sentry.recompile": ["deps.compile sentry --force", "compile"],
+      test: ["ecto.create --quiet", "ecto.migrate", "test"],
+      "cpub.deps.clean": ["deps.clean pointers --build"]
+    ]
+  end
 
   def deps_list do
     # graphql
@@ -85,7 +72,9 @@ defmodule CommonsPub.Mixfile do
       {:absinthe_plug, "~> 1.5"},
       {:absinthe_error_payload, "~> 1.0"},
       # activitypub
-      {:activity_pub, git: "https://gitlab.com/CommonsPub/activitypub", branch: "develop"},
+      {:activity_pub,
+       git: "https://gitlab.com/CommonsPub/activitypub", branch: "tbd"#, path: "libs/activitypub"
+       },
       {:nodeinfo, git: "https://github.com/voxpub/nodeinfo", branch: "main"},
       # webserver
       {:cowboy, "~> 2.6"},
@@ -163,13 +152,12 @@ defmodule CommonsPub.Mixfile do
       {:html_sanitize_ex, "~> 1.4"},
       {
         :linkify,
-        # "~> 0.2.0"
-        git: "https://gitlab.com/CommonsPub/linkify.git",
-        ref: "9360ed495ec04ab0f9f254670484f01dea668d38"
+        git: "https://gitlab.com/CommonsPub/linkify.git", branch: "master"
         # path: "uploads/linkify"
       },
       # geolocation in postgres
       {:geo_postgis, "~> 3.1"},
+
       # geocoding
       {:geocoder, "~> 1.0"},
       {:earmark, "~> 1.4"},
@@ -216,7 +204,34 @@ defmodule CommonsPub.Mixfile do
       # module mocking
       {:mock, "~> 0.3.3", only: :test},
       # autorun tests during dev
+      {:cortex, "~> 0.1", only: [:dev, :test]},
       {:mix_test_watch, "~> 1.0", only: :dev, runtime: false}
+    ]
+  end
+
+  # Configuration for the OTP application.
+  # Type `mix help compile.app` for more information.
+  def application do
+    [
+      mod: {CommonsPub.Application, []},
+      extra_applications: [
+        :logger,
+        :runtime_tools,
+        :os_mon,
+        :hackney,
+        :mime,
+        :belt,
+        :bamboo,
+        :bamboo_smtp
+      ]
+    ]
+  end
+
+  defp releases do
+    [
+      commons_pub: [
+        include_executables_for: [:unix]
+      ]
     ]
   end
 
@@ -269,48 +284,20 @@ defmodule CommonsPub.Mixfile do
     end
   end
 
-  defp dep_can_devmode(lib, params) do
-    # check if a devpath is specified or already exists or the lib is coming from SCM
-    @library_dev_mode and
-      (Keyword.has_key?(params, :path) or Keyword.has_key?(params, :git) or
-         Keyword.has_key?(params, :github) or
-         File.exists?(@library_dev_dir <> Atom.to_string(lib)))
+  defp dep_can_devmode(_lib, params) do
+    @library_dev_mode and Keyword.has_key?(params, :path) and
+      File.exists?(Keyword.get(params, :path))
   end
 
-  defp dep_devpath(lib, params) do
-    if Keyword.has_key?(params, :path) do
-      # if a path is set in deps_list() just use that
-      Keyword.get(params, :path)
-    else
-      lib = Atom.to_string(lib)
-      mixpath = "./deps/" <> lib
-      devpath = @library_dev_dir <> lib
+  defp dep_devpath(_lib, params) do
+    path = Keyword.get(params, :path)
+    IO.inspect(using_lib_path: path)
+    path
+  end
 
-      if File.exists?(devpath) do
-        devpath
-      else
-        # try to copy git repo from ./deps to devpath
-        with {:ok, _copied} <- File.cp_r(mixpath, devpath) do
-          devpath
-        else
-          e ->
-            IO.inspect(could_not_copy_dep: e)
-            mixpath
-        end
-      end
-    end
+  defp existing_paths(list) do
+    IO.inspect(Enum.filter(list, & File.exists?(&1)))
   end
 
   defp sentry?(), do: Mix.env() not in [:dev, :test]
-
-  defp aliases do
-    [
-      "ecto.rebuild": ["ecto.reset", "ecto.seeds"],
-      "ecto.setup": ["ecto.create", "ecto.migrate"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
-      "ecto.seeds": ["run priv/repo/seeds.exs"],
-      "sentry.recompile": ["deps.compile sentry --force", "compile"],
-      test: ["ecto.create --quiet", "ecto.migrate", "test"]
-    ]
-  end
 end

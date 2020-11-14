@@ -42,11 +42,11 @@ defmodule CommonsPub.Peers do
 
   @spec soft_delete(Peer.t()) :: {:ok, Peer.t()} | {:error, DeletionError.t()}
   @doc "Marks a Peer as deleted in the database"
-  def soft_delete(%Peer{} = peer), do: Common.soft_delete(peer)
+  def soft_delete(%Peer{} = peer), do: Common.Deletion.soft_delete(peer)
 
   @spec soft_delete!(Peer.t()) :: Peer.t()
   @doc "Marks a Peer as deleted in the database or throws a DeletionError"
-  def soft_delete!(%Peer{} = peer), do: Common.soft_delete!(peer)
+  def soft_delete!(%Peer{} = peer), do: Common.Deletion.soft_delete!(peer)
 
   def soft_delete_by(filters) do
     Queries.query(Peer)

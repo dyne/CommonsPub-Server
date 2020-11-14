@@ -29,7 +29,7 @@ defmodule Measurement.Measure.GraphQL do
     })
   end
 
-  def measures(page_opts, info) do
+  def measures_pages(page_opts, info) do
     ResolveRootPage.run(%ResolveRootPage{
       module: __MODULE__,
       fetcher: :fetch_measures,
@@ -53,10 +53,10 @@ defmodule Measurement.Measure.GraphQL do
     FetchPage.run(%FetchPage{
       queries: Measurement.Measure.Queries,
       query: Measurement.Measure,
-      # cursor_fn: measures.cursor(:followers),
+      cursor_fn:  & &1.id,
       page_opts: page_opts,
       base_filters: [user: GraphQL.current_user(info)],
-      data_filters: [:dafault]
+      data_filters: [:default]
     })
   end
 

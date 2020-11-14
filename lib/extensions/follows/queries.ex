@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule CommonsPub.Follows.Queries do
-  alias CommonsPub.Characters.Character
+  # alias CommonsPub.Characters.Character
   alias CommonsPub.Collections.Collection
   alias CommonsPub.Communities.Community
   alias CommonsPub.Follows.Follow
@@ -45,26 +45,7 @@ defmodule CommonsPub.Follows.Queries do
   def filter(q, {:join, {rel, jq}}), do: join_to(q, rel, jq)
   def filter(q, {:join, rel}), do: join_to(q, rel)
 
-  # TODO: but what? (it's a bit horrible)
-  def filter(q, {:preset, {:search_follows, uid}}) do
-    q
-    |> filter(deleted: false, published: true, join: :community, join: :collection)
-    |> join(:left, [community: c, collection: d], a in Character,
-      as: :character,
-      on: c.character_id == a.id or d.character_id == a.id
-    )
-    |> where([character: a], not is_nil(a.canonical_url))
-    |> select(
-      [follow: f, community: c, collection: d, character: a],
-      %{
-        community_id: c.id,
-        collection_id: d.id,
-        follow_id: f.id,
-        canonical_url: a.canonical_url,
-        is_creator: c.creator_id == ^uid or d.creator_id == ^uid
-      }
-    )
-  end
+
 
   def filter(q, {:user, match_admin()}), do: filter(q, deleted: false)
   def filter(q, {:user, nil}), do: filter(q, deleted: false, published: true)

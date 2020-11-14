@@ -9,20 +9,14 @@ defmodule ValueFlows.Agent.Organizations do
     Enum.map(
       orgs,
       &(&1
-        |> actor_to_organization)
+        |> ValueFlows.Agent.Agents.character_to_agent())
     )
   end
 
   def organization(id, signed_in_user) do
     case Organisation.Organisations.one([:default, id: id, user: signed_in_user]) do
-      {:ok, item} -> item |> actor_to_organization
+      {:ok, item} -> item |> ValueFlows.Agent.Agents.character_to_agent()
       {:error, error} -> {:error, error}
     end
-  end
-
-  def actor_to_organization(u) do
-    u
-    |> ValueFlows.Agent.Agents.actor_to_agent()
-    |> Map.put(:agent_type, :organization)
   end
 end

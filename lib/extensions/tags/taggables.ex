@@ -7,7 +7,7 @@ defmodule CommonsPub.Tag.Taggables do
     # GraphQL,
     Repo
     # GraphQL.Page,
-    # Common.Contexts
+    # Contexts
   }
 
   # alias CommonsPub.Users.User
@@ -138,13 +138,9 @@ defmodule CommonsPub.Tag.Taggables do
     end)
   end
 
-  # TODO move this common module
-  @doc "conditionally update a map"
-  def maybe_put(map, _key, nil), do: map
-  def maybe_put(map, key, value), do: Map.put(map, key, value)
 
   def maybe_taxonomy_tag(user, id) do
-    if Code.ensure_loaded?(Taxonomy.TaxonomyTags) do
+    if CommonsPub.Config.module_enabled?(Taxonomy.TaxonomyTags) do
       Taxonomy.TaxonomyTags.maybe_make_category(user, id)
     end
   end

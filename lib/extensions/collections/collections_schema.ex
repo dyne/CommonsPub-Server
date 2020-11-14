@@ -6,6 +6,7 @@ defmodule CommonsPub.Web.GraphQL.CollectionsSchema do
   use Absinthe.Schema.Notation
 
   alias CommonsPub.Web.GraphQL.{
+    CommunitiesResolver,
     CollectionsResolver,
     ResourcesResolver,
     CommonResolver,
@@ -38,7 +39,7 @@ defmodule CommonsPub.Web.GraphQL.CollectionsSchema do
     @desc "Create a collection"
     field :create_collection, :collection do
       arg(:context_id, :string)
-      arg(:community_id, :string)
+      # arg(:community_id, :string)
       arg(:collection, non_null(:collection_input))
       arg(:icon, :upload_input)
       resolve(&CollectionsResolver.create_collection/2)
@@ -54,7 +55,7 @@ defmodule CommonsPub.Web.GraphQL.CollectionsSchema do
   end
 
   @desc """
-  A collection is the home of resources and discussion threads within a community
+  A collection is typically the home of resources and discussion threads within a community
   """
   object :collection do
     @desc "An instance-local UUID identifying the user"
@@ -145,9 +146,14 @@ defmodule CommonsPub.Web.GraphQL.CollectionsSchema do
       resolve(&UsersResolver.creator_edge/3)
     end
 
-    @desc "The community the collection belongs to"
+    @desc "The community the collection belongs to, if any"
     field :community, :community do
-      resolve(&CollectionsResolver.community_edge/3)
+      resolve(&CommunitiesResolver.context_community_edge/3)
+    end
+
+    @desc "The community or other context the collection belongs to"
+    field :context, :any_context do
+      resolve(&CommonResolver.context_edge/3)
     end
 
     @desc "The total number of times this collection has been featured"

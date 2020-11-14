@@ -3,6 +3,7 @@ defmodule Geolocation.GraphQLTest do
   use CommonsPub.Web.ConnCase, async: true
 
   import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Trendy, only: [some: 2]
 
   import Geolocation.Test.Faking
   import Geolocation.Simulate
@@ -16,6 +17,22 @@ defmodule Geolocation.GraphQLTest do
       q = geolocation_query()
       conn = user_conn(user)
       assert_geolocation(grumble_post_key(q, conn, :spatial_thing, %{id: geo.id}))
+    end
+  end
+
+  describe "spatialThingPages" do
+    test "fetches a paginated list of geolocations" do
+      user = fake_user!()
+      geos = some(5, fn -> fake_geolocation!(user) end)
+
+      q = geolocation_pages_query()
+      conn = user_conn(user)
+      vars = %{
+       limit: 2
+      }
+      assert geolocations = grumble_post_key(q, conn, :spatial_things_pages, vars)
+      assert geolocations["totalCount"] == 5
+      assert Enum.count(geolocations["edges"]) == 2
     end
   end
 

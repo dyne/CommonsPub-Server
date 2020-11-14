@@ -17,7 +17,7 @@ defmodule CommonsPub.Web.GraphQL.Resources.MutationsTest do
 
       for conn <- [user_conn(alice), user_conn(bob), user_conn(eve), user_conn(lucy)] do
         vars = %{
-          collection_id: coll.id,
+          context_id: coll.id,
           resource: resource_input(),
           content: content_input(),
           icon: %{url: "https://via.placeholder.com/150.png"}
@@ -38,7 +38,7 @@ defmodule CommonsPub.Web.GraphQL.Resources.MutationsTest do
       conn = json_conn()
       ri = resource_input()
       ci = content_input()
-      vars = %{collection_id: coll.id, resource: ri, content: ci}
+      vars = %{context_id: coll.id, resource: ri, content: ci}
       assert_not_logged_in(grumble_post_errors(q, conn, vars), ["createResource"])
     end
   end
@@ -83,7 +83,7 @@ defmodule CommonsPub.Web.GraphQL.Resources.MutationsTest do
       resource = fake_resource!(alice, coll)
       conn = user_conn(bob)
       q = copy_resource_mutation()
-      vars = %{resource_id: resource.id, collection_id: coll2.id}
+      vars = %{resource_id: resource.id, context_id: coll2.id}
       assert_copied_resource(resource, grumble_post_key(q, conn, :copy_resource, vars))
     end
 
@@ -95,7 +95,7 @@ defmodule CommonsPub.Web.GraphQL.Resources.MutationsTest do
       resource = fake_resource!(alice, coll)
       conn = json_conn()
       q = copy_resource_mutation()
-      vars = %{resource_id: resource.id, collection_id: coll2.id}
+      vars = %{resource_id: resource.id, context_id: coll2.id}
       assert_not_logged_in(grumble_post_errors(q, conn, vars), ["copyResource"])
     end
   end

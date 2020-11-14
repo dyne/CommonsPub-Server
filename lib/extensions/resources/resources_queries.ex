@@ -152,10 +152,10 @@ defmodule CommonsPub.Resources.Queries do
   end
 
   def filter(q, {:collection, id}) when is_binary(id),
-    do: where(q, [resource: r], r.collection_id == ^id or r.context_id == ^id)
+    do: where(q, [resource: r], r.context_id == ^id)
 
   def filter(q, {:collection, ids}) when is_list(ids),
-    do: where(q, [resource: r], r.collection_id in ^ids or r.context_id in ^ids)
+    do: where(q, [resource: r], r.context_id in ^ids)
 
   def filter(q, {:context, id}) when is_binary(id),
     do: where(q, [resource: r], r.context_id == ^id)

@@ -15,8 +15,7 @@ defmodule Organisation.GraphQL.Schema do
     # UploadResolver
   }
 
-  alias CommonsPub.Characters.GraphQL.FacetsResolvers
-
+  # alias CommonsPub.Characters.GraphQL.CommonsPub.Characters.GraphQL.Resolver
   # alias Organisation.GraphQL.Resolver
 
   object :organisations_queries do
@@ -90,12 +89,12 @@ defmodule Organisation.GraphQL.Schema do
 
     @desc "An avatar url"
     field :icon, :content do
-      resolve(&FacetsResolvers.icon_content_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.icon_content_edge/3)
     end
 
     @desc "Another image url"
     field :image, :content do
-      resolve(&FacetsResolvers.image_content_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.image_content_edge/3)
     end
 
     @desc "Whether the organisation is local to the instance"
@@ -105,32 +104,32 @@ defmodule Organisation.GraphQL.Schema do
 
     @desc "Whether the organisation is public"
     field :is_public, non_null(:boolean) do
-      resolve(&FacetsResolvers.is_public_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.is_public_edge/3)
     end
 
     @desc "Whether an instance admin has hidden the organisation"
     field :is_disabled, non_null(:boolean) do
-      resolve(&FacetsResolvers.is_disabled_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.is_disabled_edge/3)
     end
 
     # @desc "When the organisation was created"
     # field :created_at, non_null(:string) do
-    #   resolve &FacetsResolvers.created_at_edge/3
+    #   resolve &CommonsPub.Characters.GraphQL.Resolver.created_at_edge/3
     # end
 
     @desc "The current user's like of this organisation, if any"
     field :my_like, :like do
-      resolve(&FacetsResolvers.my_like_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.my_like_edge/3)
     end
 
     @desc "The current user's follow of this organisation, if any"
     field :my_follow, :follow do
-      resolve(&FacetsResolvers.my_follow_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.my_follow_edge/3)
     end
 
     @desc "The current user's flag of the organisation, if any"
     field :my_flag, :flag do
-      resolve(&FacetsResolvers.my_flag_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.my_flag_edge/3)
     end
 
     # @desc "The primary language the community speaks"
@@ -140,22 +139,22 @@ defmodule Organisation.GraphQL.Schema do
 
     @desc "The user who created the organisation"
     field :creator, :user do
-      resolve(&FacetsResolvers.creator_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.creator_edge/3)
     end
 
     @desc "The community the organisation belongs to"
     field :context, :community do
-      resolve(&FacetsResolvers.context_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.context_edge/3)
     end
 
     @desc "Total number of followers, including those we can't see"
     field :follower_count, :integer do
-      resolve(&FacetsResolvers.follower_count_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.follower_count_edge/3)
     end
 
     @desc "Total number of likers, including those we can't see"
     field :liker_count, :integer do
-      resolve(&FacetsResolvers.liker_count_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.liker_count_edge/3)
     end
 
     @desc "Subscriptions users have to the organisation"
@@ -163,7 +162,7 @@ defmodule Organisation.GraphQL.Schema do
       arg(:limit, :integer)
       arg(:before, list_of(non_null(:cursor)))
       arg(:after, list_of(non_null(:cursor)))
-      resolve(&FacetsResolvers.followers_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.followers_edge/3)
     end
 
     @desc "Likes users have made of the organisation"
@@ -171,7 +170,7 @@ defmodule Organisation.GraphQL.Schema do
       arg(:limit, :integer)
       arg(:before, list_of(non_null(:cursor)))
       arg(:after, list_of(non_null(:cursor)))
-      resolve(&FacetsResolvers.likers_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.likers_edge/3)
     end
 
     @desc "Flags users have made about the organisation, most recently created first"
@@ -179,7 +178,7 @@ defmodule Organisation.GraphQL.Schema do
       arg(:limit, :integer)
       arg(:before, list_of(non_null(:cursor)))
       arg(:after, list_of(non_null(:cursor)))
-      resolve(&FacetsResolvers.flags_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.flags_edge/3)
     end
 
     # @desc "Tags users have applied to the resource, most recently created first"
@@ -206,7 +205,7 @@ defmodule Organisation.GraphQL.Schema do
       arg(:limit, :integer)
       arg(:before, list_of(non_null(:cursor)))
       arg(:after, list_of(non_null(:cursor)))
-      resolve(&FacetsResolvers.outbox_edge/3)
+      resolve(&CommonsPub.Characters.GraphQL.Resolver.outbox_edge/3)
     end
   end
 

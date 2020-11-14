@@ -9,22 +9,16 @@ defmodule ValueFlows.Agent.People do
     Enum.map(
       users,
       &(&1
-        |> actor_to_person)
+        |> ValueFlows.Agent.Agents.character_to_agent())
     )
   end
 
   def person(id, signed_in_user) do
-    IO.inspect(id)
+    # IO.inspect(id)
 
-    case CommonsPub.Users.one([:default, id: id, user: signed_in_user]) do
-      {:ok, item} -> item |> actor_to_person
+    case CommonsPub.Users.one([:default, :geolocation, id: id, user: signed_in_user]) do
+      {:ok, item} -> item |> ValueFlows.Agent.Agents.character_to_agent()
       {:error, error} -> {:error, error}
     end
-  end
-
-  def actor_to_person(u) do
-    u
-    |> ValueFlows.Agent.Agents.actor_to_agent()
-    |> Map.put(:agent_type, :person)
   end
 end

@@ -14,7 +14,9 @@ defmodule CommonsPub.Communities.Community do
   alias CommonsPub.Communities
   alias CommonsPub.Communities.{Community, CommunityFollowerCount}
   alias CommonsPub.Collections.Collection
-  alias CommonsPub.Feeds.Feed
+  alias CommonsPub.Threads.Thread
+  alias CommonsPub.Resources.Resource
+  # alias CommonsPub.Feeds.Feed
   alias CommonsPub.Flags.Flag
   # alias CommonsPub.Locales.Language
   alias CommonsPub.Users.User
@@ -26,32 +28,50 @@ defmodule CommonsPub.Communities.Community do
 
     belongs_to(:creator, User)
     belongs_to(:context, Pointers.Pointer)
-    belongs_to(:inbox_feed, Feed, foreign_key: :inbox_id)
-    belongs_to(:outbox_feed, Feed, foreign_key: :outbox_id)
+
+    belongs_to(:community, Community, foreign_key: :context_id, define_field: false)
+    belongs_to(:collection, Collection, foreign_key: :context_id, define_field: false)
+    has_many(:collections, Collection, foreign_key: :context_id)
+    has_many(:resources, Resource, foreign_key: :context_id)
+    has_many(:threads, Thread, foreign_key: :context_id)
+
+    # moved to Character
+    # belongs_to(:inbox_feed, Feed, foreign_key: :inbox_id)
+    # belongs_to(:outbox_feed, Feed, foreign_key: :outbox_id)
+
     field(:canonical_url, :string, virtual: true)
     field(:preferred_username, :string, virtual: true)
+
     # belongs_to(:primary_language, Language)
     has_one(:follower_count, CommunityFollowerCount)
+
     field(:name, :string)
     field(:summary, :string)
+
     belongs_to(:icon, Content)
     belongs_to(:image, Content)
+
     field(:is_disabled, :boolean, virtual: true)
     field(:disabled_at, :utc_datetime_usec)
+
     field(:is_public, :boolean, virtual: true)
     field(:published_at, :utc_datetime_usec)
+
     field(:is_deleted, :boolean, virtual: true)
     field(:deleted_at, :utc_datetime_usec)
+
     field(:is_local, :boolean, virtual: true)
-    has_many(:collections, Collection)
+
     has_many(:flags, Flag)
+
     field(:extra_info, :map)
+
     timestamps()
   end
 
   @create_required ~w(name creator_id)a
   @create_cast @create_required ++
-                 ~w(is_disabled is_public summary icon_id image_id inbox_id outbox_id)a
+                 ~w(is_disabled is_public summary icon_id image_id)a
 
   def create_changeset(
         %User{} = creator,
@@ -85,7 +105,7 @@ defmodule CommonsPub.Communities.Community do
     |> common_changeset()
   end
 
-  @update_cast ~w(name summary icon_id image_id is_disabled is_public inbox_id outbox_id)a
+  @update_cast ~w(name summary icon_id image_id is_disabled is_public)a
   def update_changeset(%Community{} = community, fields) do
     community
     |> Changeset.cast(fields, @update_cast)

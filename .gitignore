@@ -67,3 +67,4 @@ config/prod
 
 #Extensions development
 /extensions
+/libs

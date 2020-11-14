@@ -256,14 +256,14 @@ defmodule CommonsPub.Web.Test.GraphQLFields do
   def create_collection_mutation(options \\ []) do
     [
       collection: type!(:collection_input),
-      community_id: type!(:string),
+      context_id: type!(:string),
       icon: type(:upload_input)
     ]
     |> gen_mutation(&create_collection_submutation/1, options)
   end
 
   def create_collection_submutation(options \\ []) do
-    [collection: var(:collection), community_id: var(:community_id), icon: var(:icon)]
+    [collection: var(:collection), context_id: var(:context_id), icon: var(:icon)]
     |> gen_submutation(:create_collection, &collection_fields/1, options)
   end
 
@@ -577,7 +577,7 @@ defmodule CommonsPub.Web.Test.GraphQLFields do
 
   def create_resource_mutation(options \\ []) do
     [
-      collection_id: type!(:string),
+      context_id: type!(:string),
       resource: type!(:resource_input),
       content: type!(:upload_input),
       icon: type(:upload_input)
@@ -587,7 +587,7 @@ defmodule CommonsPub.Web.Test.GraphQLFields do
 
   def create_resource_submutation(options \\ []) do
     [
-      collection_id: var(:collection_id),
+      context_id: var(:context_id),
       resource: var(:resource),
       content: var(:content),
       icon: var(:icon)
@@ -616,12 +616,12 @@ defmodule CommonsPub.Web.Test.GraphQLFields do
   end
 
   def copy_resource_mutation(options \\ []) do
-    [collection_id: type!(:string), resource_id: type!(:string)]
+    [context_id: type!(:string), resource_id: type!(:string)]
     |> gen_mutation(&copy_resource_submutation/1, options)
   end
 
   def copy_resource_submutation(options \\ []) do
-    [collection_id: var(:collection_id), resource_id: var(:resource_id)]
+    [context_id: var(:context_id), resource_id: var(:resource_id)]
     |> gen_submutation(:copy_resource, &resource_fields/1, options)
   end
 

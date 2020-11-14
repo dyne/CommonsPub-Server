@@ -8,18 +8,14 @@ defmodule ValueFlows.Knowledge.ProcessSpecification do
 
   alias Ecto.Changeset
   alias CommonsPub.Users.User
-  #
-  # alias CommonsPub.Communities.Community
-  # alias ValueFlows.Knowledge.Action
+
   alias ValueFlows.Knowledge.ProcessSpecification
-  # alias Measurement.Measure
 
   @type t :: %__MODULE__{}
 
   pointable_schema do
     field(:name, :string)
     field(:note, :string)
-    # belongs_to(:image, Content)
 
     field(:classified_as, {:array, :string}, virtual: true)
 
@@ -44,23 +40,7 @@ defmodule ValueFlows.Knowledge.ProcessSpecification do
   end
 
   @required ~w(name is_public)a
-  @cast @required ++ ~w(note classified_as is_disabled)a
-
-  def create_changeset(
-        %User{} = creator,
-        %{id: _} = context,
-        attrs
-      ) do
-    %ProcessSpecification{}
-    |> Changeset.cast(attrs, @cast)
-    |> Changeset.validate_required(@required)
-    |> Changeset.change(
-      creator_id: creator.id,
-      context_id: context.id,
-      is_public: true
-    )
-    |> common_changeset()
-  end
+  @cast @required ++ ~w(note classified_as is_disabled context_id)a
 
   def create_changeset(
         %User{} = creator,
@@ -73,17 +53,6 @@ defmodule ValueFlows.Knowledge.ProcessSpecification do
       creator_id: creator.id,
       is_public: true
     )
-    |> common_changeset()
-  end
-
-  def update_changeset(
-        %ProcessSpecification{} = process_spec,
-        %{id: _} = context,
-        attrs
-      ) do
-    process_spec
-    |> Changeset.cast(attrs, @cast)
-    |> Changeset.change(context_id: context.id)
     |> common_changeset()
   end
 

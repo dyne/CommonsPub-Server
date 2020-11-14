@@ -1,6 +1,7 @@
 defmodule ValueFlows.Knowledge.ResourceSpecification.ResourceSpecificationsTest do
   use CommonsPub.Web.ConnCase, async: true
 
+  import CommonsPub.Utils.Simulation
   import CommonsPub.Test.Faking
   import CommonsPub.Tag.Simulate
   import CommonsPub.Utils.Trendy, only: [some: 2]
@@ -42,7 +43,9 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.ResourceSpecificationsTest 
       user = fake_user!()
       parent = fake_user!()
 
-      assert {:ok, spec} = ResourceSpecifications.create(user, parent, resource_specification())
+      attrs = %{in_scope_of: [parent.id]}
+
+      assert {:ok, spec} = ResourceSpecifications.create(user, resource_specification(attrs))
       assert_resource_specification(spec)
       assert spec.context_id == parent.id
     end

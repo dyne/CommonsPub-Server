@@ -77,17 +77,19 @@ defmodule ValueFlows.Observation.Process.GraphQLTest do
     test "fetches all items that are not deleted" do
       user = fake_user!()
       processes = some(5, fn -> fake_process!(user) end)
+      after_process = List.first(processes)
       # deleted
       some(2, fn ->
         process = fake_process!(user)
         {:ok, process} = Processes.soft_delete(process)
         process
       end)
-
+      vars = %{after: after_process.id, limit: 2}
       q = processes_pages_query()
       conn = user_conn(user)
-      assert page = grumble_post_key(q, conn, :processes_pages, %{})
-      assert Enum.count(processes) == page["totalCount"]
+      assert page = grumble_post_key(q, conn, :processes_pages, vars)
+      assert 5 == page["totalCount"]
+      assert List.first(page["edges"])["id"] == after_process.id
     end
   end
 

@@ -47,7 +47,7 @@ defmodule CommonsPub.Activities do
   end
 
   @spec soft_delete(User.t(), Activity.t()) :: {:ok, Activity.t()} | {:error, Changeset.t()}
-  def soft_delete(%User{}, %Activity{} = activity), do: Common.soft_delete(activity)
+  def soft_delete(%User{}, %Activity{} = activity), do: Common.Deletion.soft_delete(activity)
 
   def soft_delete_by(%User{} = user, filters) do
     update_by(user, [{:deleted, false} | filters], deleted_at: DateTime.utc_now())

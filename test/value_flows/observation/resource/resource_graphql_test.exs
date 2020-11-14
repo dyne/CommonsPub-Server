@@ -34,7 +34,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
       user = fake_user!()
 
       location = fake_geolocation!(user)
-      owner = fake_user!()
+      owner = fake_agent!()
       unit = fake_unit!(user)
 
       attrs = %{
@@ -108,12 +108,16 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
         {:ok, resource} = EconomicResources.soft_delete(resource)
         resource
       end)
+      after_resource = List.first(resources)
 
       q = economic_resources_pages_query()
       conn = user_conn(user)
+      vars = %{after: after_resource.id, limit: 2}
 
-      assert page = grumble_post_key(q, conn, :economic_resources_pages, %{})
+      assert page = grumble_post_key(q, conn, :economic_resources_pages, vars)
       assert Enum.count(resources) == page["totalCount"]
+      assert List.first(page["edges"])["id"] == after_resource.id
+
     end
   end
 
@@ -150,14 +154,16 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
 
     test "Returns a list of transfer/move EconomicEvents with the resource defined as the resourceInventoriedAs" do
       user = fake_user!()
-      resource = fake_economic_resource!(user)
+      unit = fake_unit!(user)
+
+      resource = fake_economic_resource!(user, %{}, unit)
 
       input_events =
         some(3, fn ->
           fake_economic_event!(user, %{
             resource_inventoried_as: resource.id,
             action: "transfer"
-          })
+          }, unit)
         end)
 
       _other_events =
@@ -165,7 +171,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
           fake_economic_event!(user, %{
             resource_inventoried_as: resource.id,
             action: "use"
-          })
+          }, unit)
         end)
 
       q = economic_resource_query(fields: [track: [:id]])
@@ -179,7 +185,9 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
   describe "EconomicResources.trace" do
     test "Returns a list of EconomicEvents affecting it that are outputs to Processes " do
       user = fake_user!()
-      resource = fake_economic_resource!(user)
+      unit = fake_unit!(user)
+
+      resource = fake_economic_resource!(user, %{}, unit)
       process = fake_process!(user)
 
       input_events =
@@ -188,7 +196,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
             input_of: process.id,
             resource_inventoried_as: resource.id,
             action: "use"
-          })
+          }, unit)
         end)
 
       output_events =
@@ -197,7 +205,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
             output_of: process.id,
             resource_inventoried_as: resource.id,
             action: "produce"
-          })
+          }, unit)
         end)
 
       q = economic_resource_query(fields: [trace: [:id]])
@@ -210,7 +218,9 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
     test "Returns a list of transfer/move EconomicEvents with the resource defined as the toResourceInventoriedAs" do
       user = fake_user!()
       alice = fake_user!()
-      resource = fake_economic_resource!(user)
+      unit = fake_unit!(user)
+
+      resource = fake_economic_resource!(user, %{}, unit)
 
       input_events =
         some(3, fn ->
@@ -219,7 +229,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
             receiver: alice.id,
             to_resource_inventoried_as: resource.id,
             action: "transfer"
-          })
+          }, unit)
         end)
 
       _other_events =
@@ -229,7 +239,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
             receiver: alice.id,
             to_resource_inventoried_as: resource.id,
             action: "use"
-          })
+          }, unit)
         end)
 
       q = economic_resource_query(fields: [trace: [:id]])

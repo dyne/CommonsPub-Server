@@ -140,27 +140,10 @@ defmodule CommonsPub.Web.GraphQL.UsersSchema do
       resolve(&UsersResolver.is_instance_admin_edge/3)
     end
 
-    @desc """
-    I hope to go away soon, but in the interim I return just enough
-    information about the collections and communities a user follows
-    to match them up to the search results in the frontend
-    """
-    field :search_follows, non_null(list_of(non_null(:search_follow))) do
-      resolve(&UsersResolver.search_follows/3)
-    end
+
   end
 
-  @desc """
-  I hope to go away soon, but in the interim I am a subset of a
-  collection or community the user follows.
-  """
-  object :search_follow do
-    field(:community_id, :string)
-    field(:collection_id, :string)
-    field(:follow_id, non_null(:string))
-    field(:canonical_url, non_null(:string))
-    field(:is_creator, non_null(:boolean))
-  end
+
 
   @desc "User profile information"
   object :user do

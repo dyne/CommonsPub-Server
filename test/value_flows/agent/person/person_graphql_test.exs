@@ -6,16 +6,17 @@ defmodule Valueflows.Agent.Person.GraphQLTest do
   import CommonsPub.Web.Test.GraphQLAssertions
 
   import Geolocation.Test.Faking
+  import Measurement.Simulate
 
   import ValueFlows.Simulate
   import ValueFlows.Test.Faking
 
-  @debug true
+  @debug false
   @schema CommonsPub.Web.GraphQL.Schema
 
   describe "person" do
     test "fetches an existing person by id (via HTTP)" do
-      user = fake_user!()
+      user = fake_agent!()
 
       q = person_query()
       conn = user_conn(user)
@@ -23,36 +24,53 @@ defmodule Valueflows.Agent.Person.GraphQLTest do
     end
 
     test "fetches an existing person by id (via Absinthe.run)" do
-      user = fake_user!()
-      user2 = fake_user!()
+      user = fake_agent!()
+      user2 = fake_agent!()
 
       # attach some data to the person...
 
-      intent =
-        fake_intent!(user, nil, nil, %{
-          provider: user.id
-        })
+      unit = fake_unit!(user)
 
+      intent = fake_intent!(user, %{provider: user.id})
+
+      rspec = fake_resource_specification!(user)
+
+      from_resource =
+        fake_economic_resource!(user2, %{name: "Previous Resource", conforms_to: rspec.id}, unit)
 
       resource =
-        fake_economic_resource!(user, %{
-          primary_accountable: user.id
-        })
-      IO.inspect(resource: resource)
+        fake_economic_resource!(
+          user,
+          %{
+            primary_accountable: user.id,
+            name: "Resulting Resource",
+            conforms_to: rspec.id
+          },
+          unit
+        )
 
-      process = fake_process!(user)
+      pspec = fake_process_specification!(user)
+      process = fake_process!(user, %{based_on: pspec.id})
 
       event =
-        fake_economic_event!(user, %{
-          provider: user.id,
-          receiver: user2.id,
-          action: action.id,
-          input_of: fake_process!(user2).id,
-          output_of: fake_process!(user).id,
-          resource_conforms_to: fake_resource_specification!(user).id,
-          to_resource_inventoried_as: fake_economic_resource!(user).id,
-          resource_inventoried_as: fake_economic_resource!(user).id
-        })
+        fake_economic_event!(
+          user,
+          %{
+            provider: user2.id,
+            receiver: user.id,
+            action: "transfer",
+            input_of: fake_process!(user).id,
+            output_of: fake_process!(user2).id,
+            resource_conforms_to: fake_resource_specification!(user).id,
+            resource_inventoried_as: from_resource.id,
+            to_resource_inventoried_as: resource.id
+          },
+          unit
+        )
+
+      # IO.inspect(intent: intent)
+      # IO.inspect(resource: resource)
+      # IO.inspect(event: event)
 
       assert queried =
                CommonsPub.Web.GraphQL.QueryHelper.run_query_id(

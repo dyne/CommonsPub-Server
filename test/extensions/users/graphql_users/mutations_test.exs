@@ -50,7 +50,7 @@ defmodule CommonsPub.Web.GraphQL.Users.MutationsTest do
     end
   end
 
-  describe "update_user" do
+  describe "update user" do
     test "Works for a logged in user" do
       alice = fake_user!()
       conn = user_conn(alice)

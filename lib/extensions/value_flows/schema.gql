@@ -2,7 +2,7 @@
  Grouping around something to create a boundary or context, used for documenting,
 accounting, planning. Extended from the default of `Person | Organization`
 """
-union AccountingScope = Person | Organization | Community | Collection
+union AccountingScope = User | Organisation | Person | Organization | Community | Collection
 
 """
 An action verb defining the kind of event, commitment, or intent.
@@ -2315,6 +2315,8 @@ type Organization implements Agent {
   plans(filter: agentPlanSearchParams): [Plan!]
   commitments(filter: agentCommitmentSearchParams): [Commitment!]
   intents(filter: agentIntentSearchParams): [Intent!]
+
+  ## added for CPub:
   agentType: AgentType
   canonicalUrl: String
   displayUsername: String
@@ -2364,6 +2366,8 @@ type Person implements Agent {
   plans(filter: agentPlanSearchParams): [Plan!]
   commitments(filter: agentCommitmentSearchParams): [Commitment!]
   intents(filter: agentIntentSearchParams): [Intent!]
+
+  ## added for CPub:
   agentType: AgentType
   canonicalUrl: String
   displayUsername: String
@@ -2832,7 +2836,15 @@ type Proposal {
   A textual description or comment.
   """
   note: String
+  
+  """
+  Intent(s) published as part of to this proposal
+  """
   publishes: [ProposedIntent!]
+
+  """
+  Which Agent(s) (if any were specified) was this proposed to?
+  """
   publishedTo: [ProposedTo!]
 
   """

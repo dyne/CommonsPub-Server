@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Proposal.Proposals do
+  import CommonsPub.Common, only: [maybe_put: 3, attr_get_id: 2]
+
   alias CommonsPub.{Activities, Common, Feeds, Repo}
   alias CommonsPub.GraphQL.{Fields, Page}
-  alias CommonsPub.Common.Contexts
+  alias CommonsPub.Contexts
   alias CommonsPub.Feeds.FeedActivities
   alias CommonsPub.Users.User
 
-  alias Geolocation.Geolocations
-  # alias Measurement.Measure
   alias ValueFlows.Proposal
   alias ValueFlows.Proposal
 
@@ -20,9 +20,6 @@ defmodule ValueFlows.Proposal.Proposals do
   }
 
   alias ValueFlows.Planning.Intent
-
-  # use Assertions.AbsintheCase, async: true, schema: ValueFlows.Schema
-  # import Assertions.Absinthe, only: [document_for: 4]
 
   @schema CommonsPub.Web.GraphQL.Schema
 
@@ -113,63 +110,35 @@ defmodule ValueFlows.Proposal.Proposals do
     )
   end
 
-  def preloads(proposal) do
-    CommonsPub.Utils.Web.CommonHelper.maybe_preload(proposal, [
-      :context,
+  def preload_all(proposal) do
+    Repo.preload(proposal, [
+      :creator,
       :eligible_location,
-      :creator
-      # :proposed_to,
-      # :publishes
+      # pointers, not supported
+      :context,
     ])
   end
 
   ## mutations
 
-  # @spec create(User.t(), Community.t(), attrs :: map) :: {:ok, Proposal.t()} | {:error, Changeset.t()}
-  def create(%User{} = creator, %{id: _id} = context, attrs)
-      when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      Proposal.create_changeset(creator, context, attrs)
-    end)
-  end
-
-  # @spec create(User.t(), attrs :: map) :: {:ok, Proposal.t()} | {:error, Changeset.t()}
+  @spec create(User.t(), attrs :: map) :: {:ok, Proposal.t()} | {:error, Changeset.t()}
   def create(%User{} = creator, attrs) when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      Proposal.create_changeset(creator, attrs)
-    end)
-  end
+    attrs = prepare_attrs(attrs)
 
-  def do_create(creator, attrs, changeset_fn) do
     Repo.transact_with(fn ->
-      cs = changeset_fn.()
-
-      with {:ok, cs} <- change_eligible_location(cs, attrs),
-           {:ok, item} <- Repo.insert(cs),
+      with {:ok, proposal} <- Repo.insert(Proposal.create_changeset(creator, attrs)),
            act_attrs = %{verb: "created", is_local: true},
            # FIXME
-           {:ok, activity} <- Activities.create(creator, item, act_attrs),
-           :ok <- index(item),
-           :ok <- publish(creator, item, activity, :created) do
-        {:ok, item}
+           {:ok, activity} <- Activities.create(creator, proposal, act_attrs),
+           :ok <- index(proposal),
+           :ok <- publish(creator, proposal, activity, :created) do
+        {:ok, preload_all(proposal)}
       end
     end)
   end
 
   defp publish(creator, proposal, activity, :created) do
     feeds = [
-      CommonsPub.Feeds.outbox_id(creator),
-      Feeds.instance_outbox_id()
-    ]
-
-    with :ok <- FeedActivities.publish(activity, feeds) do
-      ap_publish("create", proposal.id, creator.id)
-    end
-  end
-
-  defp publish(creator, context, proposal, activity, :created) do
-    feeds = [
-      context.outbox_id,
       CommonsPub.Feeds.outbox_id(creator),
       Feeds.instance_outbox_id()
     ]
@@ -199,28 +168,13 @@ defmodule ValueFlows.Proposal.Proposals do
     :ok
   end
 
-  defp ap_publish(_, _, _), do: :ok
-
   # TODO: take the user who is performing the update
-  # @spec update(%Proposal{}, attrs :: map) :: {:ok, Proposal.t()} | {:error, Changeset.t()}
+  @spec update(%Proposal{}, attrs :: map) :: {:ok, Proposal.t()} | {:error, Changeset.t()}
   def update(%Proposal{} = proposal, attrs) do
-    do_update(proposal, attrs, &Proposal.update_changeset(&1, attrs))
-  end
+    attrs = prepare_attrs(attrs)
 
-  def update(%Proposal{} = proposal, %{id: _id} = context, attrs) do
-    do_update(proposal, attrs, &Proposal.update_changeset(&1, context, attrs))
-  end
-
-  def do_update(proposal, attrs, changeset_fn) do
     Repo.transact_with(fn ->
-      proposal = preloads(proposal)
-
-      cs =
-        proposal
-        |> changeset_fn.()
-
-      with {:ok, cs} <- change_eligible_location(cs, attrs),
-           {:ok, proposal} <- Repo.update(cs),
+      with {:ok, proposal} <- Repo.update(Proposal.update_changeset(proposal, attrs)),
            :ok <- publish(proposal, :updated) do
         {:ok, proposal}
       end
@@ -229,7 +183,7 @@ defmodule ValueFlows.Proposal.Proposals do
 
   def soft_delete(%Proposal{} = proposal) do
     Repo.transact_with(fn ->
-      with {:ok, proposal} <- Common.soft_delete(proposal),
+      with {:ok, proposal} <- Common.Deletion.soft_delete(proposal),
            :ok <- publish(proposal, :deleted) do
         {:ok, proposal}
       end
@@ -244,7 +198,7 @@ defmodule ValueFlows.Proposal.Proposals do
 
   @spec delete_proposed_intent(ProposedIntent.t()) :: {:ok, ProposedIntent.t()} | {:error, term}
   def delete_proposed_intent(%ProposedIntent{} = proposed_intent) do
-    Common.soft_delete(proposed_intent)
+    Common.Deletion.soft_delete(proposed_intent)
   end
 
   # if you like it then you should put a ring on it
@@ -254,7 +208,7 @@ defmodule ValueFlows.Proposal.Proposals do
   end
 
   @spec delete_proposed_to(ProposedTo.t()) :: {:ok, ProposedTo.t()} | {:error, term}
-  def delete_proposed_to(proposed_to), do: Common.soft_delete(proposed_to)
+  def delete_proposed_to(proposed_to), do: Common.Deletion.soft_delete(proposed_to)
 
   def indexing_object_format(obj) do
     # icon = CommonsPub.Uploads.remote_url_from_id(obj.icon_id)
@@ -281,130 +235,15 @@ defmodule ValueFlows.Proposal.Proposals do
     :ok
   end
 
-  def ap_object_format_attempt1(obj) do
-    obj = preloads(obj)
-    # icon = CommonsPub.Uploads.remote_url_from_id(obj.icon_id)
-    # image = CommonsPub.Uploads.remote_url_from_id(obj.image_id)
+  def ap_publish_activity(activity_name, proposal) do
+    ValueFlows.Util.ap_publish_activity(activity_name, :proposal, proposal, 3, [:published_in])
+  end
 
-    Map.merge(
-      %{
-        "type" => "ValueFlows:Proposal",
-        # "canonicalUrl" => obj.canonical_url,
-        # "icon" => icon,
-        "published" => obj.has_beginning
-      },
-      CommonsPub.Common.keys_transform(obj, "to_string")
+  defp prepare_attrs(attrs) do
+    attrs
+    |> maybe_put(:context_id,
+      attrs |> Map.get(:in_scope_of) |> CommonsPub.Common.maybe(&List.first/1)
     )
+    |> maybe_put(:eligible_location_id, attr_get_id(attrs, :eligible_location))
   end
-
-  def graphql_get_proposal_attempt2(id) do
-    query =
-      Grumble.PP.to_string(
-        Grumble.field(
-          :proposal,
-          args: [id: Grumble.var(:id)],
-          fields: ValueFlows.Simulate.proposal_fields(eligible_location: [:name])
-        )
-      )
-      |> IO.inspect()
-
-    with {:ok, g} <-
-           """
-            query ($id: ID) {
-               #{query}
-             }
-           """
-           |> Absinthe.run(@schema, variables: %{"id" => id}) do
-      g |> Map.get(:data) |> Map.get("proposal")
-    end
-  end
-
-  def ap_object_prepare_attempt2(id) do
-    with obj <- graphql_get_proposal_attempt2(id) do
-      Map.merge(
-        %{
-          "type" => "ValueFlows:Proposal"
-          # "canonicalUrl" => obj.canonical_url,
-          # "icon" => icon,
-          # "published" => obj.hasBeginning
-        },
-        obj
-      )
-    end
-  end
-
-  # def graphql_document_for(schema, type, nesting, override_fun \\ []) do
-  #   schema
-  #   |> CommonsPub.Web.GraphQL.QueryHelper.fields_for(type, nesting)
-  #   # |> IO.inspect()
-  #   |> CommonsPub.Web.GraphQL.QueryHelper.apply_overrides(override_fun)
-  #   |> CommonsPub.Web.GraphQL.QueryHelper.format_fields(type, 10, schema)
-  #   |> List.to_string()
-  # end
-
-  @ignore [:communities, :collections, :my_like, :my_flag, :unit_based, :feature_count, :follower_count, :is_local, :is_disabled, :page_info, :edges, :threads, :outbox, :inbox, :followers, :community_follows]
-
-  def fields_filter(e) do
-    # IO.inspect(e)
-
-    case e do
-      {key, {key2, val}} ->
-        if key not in @ignore and key2 not in @ignore and is_list(val) do
-          {key, {key2, for(n <- val, do: fields_filter(n))}}
-        # else
-        #   IO.inspect(hmm1: e)
-        end
-
-      {key, val} ->
-        if key not in @ignore and is_list(val) do
-          {key, for(n <- val, do: fields_filter(n))}
-        # else
-        #   IO.inspect(hmm2: e)
-        end
-
-      _ ->
-        if e not in @ignore, do: e
-    end
-  end
-
-  # def graphql_get_proposal_attempt3(id) do
-  #   query = CommonsPub.Web.GraphQL.QueryHelper.document_for(@schema, :proposal, 4, &fields_filter/1)
-  #   IO.inspect(query)
-
-  #   with {:ok, g} <-
-  #          """
-  #           query ($id: ID) {
-  #             proposal(id: $id) {
-  #               #{query}
-  #             }
-  #           }
-  #          """
-  #          |> Absinthe.run(@schema, variables: %{"id" => id}) do
-  #     IO.inspect(g)
-  #     g |> Map.get(:data) |> Map.get("proposal")
-  #   end
-  # end
-
-  def ap_object_prepare_attempt3(id) do
-    # with obj <- graphql_get_proposal_attempt3(id) do
-    with obj <- CommonsPub.Web.GraphQL.QueryHelper.run_query_id(id, @schema, :proposal, 4, &fields_filter/1) do
-      Map.merge(
-        %{
-          "type" => "ValueFlows:Proposal"
-          # "canonicalUrl" => obj.canonical_url,
-          # "icon" => icon,
-          # "published" => obj.hasBeginning
-        },
-        obj
-      )
-    end
-  end
-
-  defp change_eligible_location(changeset, %{eligible_location: id}) do
-    with {:ok, location} <- Geolocations.one([:default, id: id]) do
-      {:ok, Proposal.change_eligible_location(changeset, location)}
-    end
-  end
-
-  defp change_eligible_location(changeset, _attrs), do: {:ok, changeset}
 end

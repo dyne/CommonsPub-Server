@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Agent.GraphQL do
-
   # alias CommonsPub.Web.GraphQL.{CommonResolver}
 
   # alias CommonsPub.Utils.Simulation
@@ -30,7 +29,7 @@ defmodule ValueFlows.Agent.GraphQL do
       Enum.map(
         users_pages.edges,
         &(&1
-          |> ValueFlows.Agent.People.actor_to_person())
+          |> ValueFlows.Agent.Agents.character_to_agent())
       )
 
     people_pages = %{
@@ -59,7 +58,7 @@ defmodule ValueFlows.Agent.GraphQL do
       Enum.map(
         orgs_pages.edges,
         &(&1
-          |> ValueFlows.Agent.Organizations.actor_to_organization())
+          |> ValueFlows.Agent.Agents.character_to_agent())
       )
 
     orgz_pages = %{
@@ -97,6 +96,7 @@ defmodule ValueFlows.Agent.GraphQL do
   end
 
   def mutate_organization(_, _) do
-    {:error, "Please use one of these instead (notice the spelling difference): createOrganisation, updateOrganisation, delete"}
+    {:error,
+     "Please use one of these instead (notice the spelling difference): createOrganisation, updateOrganisation, delete"}
   end
 end

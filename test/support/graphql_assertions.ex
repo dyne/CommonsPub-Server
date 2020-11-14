@@ -125,7 +125,11 @@ defmodule CommonsPub.Web.Test.GraphQLAssertions do
     end
   end
 
-  def assert_object(%{} = object, name, required, optional \\ [])
+  def assert_object(struct = %{__struct__: _}, name, required, optional \\ []) do
+    assert_object(Map.from_struct(struct), name, required, optional)
+  end
+
+  def assert_object(%{} = object, name, required, optional)
       when is_atom(name) and is_list(required) and is_list(optional) do
     object = ConnHelpers.uncamel_map(object)
 

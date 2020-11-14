@@ -214,7 +214,7 @@ defmodule CommonsPub.Web.GraphQL.Schema do
         :intent
 
       o, _ ->
-        Logger.warn("Any context resolved to an unknown type: #{inspect(o)}")
+        Logger.warn("Any context resolved to an unknown type: #{inspect(o, pretty: true)}")
     end)
   end
 end

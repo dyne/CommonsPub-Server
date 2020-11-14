@@ -48,7 +48,7 @@ defmodule Measurement.GraphQLTest do
       q = units_query()
       conn = user_conn(user)
       vars = %{after: after_unit.id, limit: 2}
-      assert [%{"edges" => fetched}] = grumble_post_key(q, conn, :unitsPages, vars)
+      assert %{"edges" => fetched} = grumble_post_key(q, conn, :units_pages, vars)
       assert Enum.count(fetched) == 2
       assert List.first(fetched)["id"] == after_unit.id
     end
@@ -119,4 +119,21 @@ defmodule Measurement.GraphQLTest do
       assert_measure(grumble_post_key(q, conn, :measure, %{id: measure.id}))
     end
   end
+
+  describe "measuresPages" do
+    test "fetches a page of measures" do
+      user = fake_user!()
+      unit = fake_unit!(user)
+      measures = some(5, fn -> fake_measure!(user, unit) end)
+      after_measure = List.first(measures)
+
+      q = measures_pages_query()
+      conn = user_conn(user)
+      vars = %{after: after_measure.id, limit: 2}
+      assert %{"edges" => fetched} = grumble_post_key(q, conn, :measures_pages, vars)
+      assert Enum.count(fetched) == 2
+      assert List.first(fetched)["id"] == after_measure.id
+    end
+  end
+
 end

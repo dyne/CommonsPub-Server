@@ -16,7 +16,7 @@ defmodule ValueFlows.Observation.Process do
   # alias ValueFlows.Knowledge.Action
   alias ValueFlows.Knowledge.ProcessSpecification
 
-  alias ValueFlows.Observation.EconomicEvent
+  # alias ValueFlows.Observation.EconomicEvent
 
   @type t :: %__MODULE__{}
 
@@ -77,24 +77,7 @@ defmodule ValueFlows.Observation.Process do
   end
 
   @required ~w(name is_public)a
-  @cast @required ++ ~w(note has_beginning has_end finished is_disabled)a
-
-
-  def create_changeset(
-        %User{} = creator,
-        %{id: _} = context,
-        attrs
-      ) do
-    %Process{}
-    |> Changeset.cast(attrs, @cast)
-    |> Changeset.validate_required(@required)
-    |> Changeset.change(
-      creator_id: creator.id,
-      context_id: context.id,
-      is_public: true
-    )
-    |> common_changeset()
-  end
+  @cast @required ++ ~w(note has_beginning has_end finished is_disabled context_id based_on_id)a
 
   def create_changeset(
         %User{} = creator,
@@ -121,7 +104,6 @@ defmodule ValueFlows.Observation.Process do
     |> change_public()
     |> change_disabled()
   end
-
 
   def context_module, do: ValueFlows.Observation.Process.Processes
 

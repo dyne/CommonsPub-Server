@@ -4,13 +4,13 @@ defmodule ValueFlows.Simulate do
 
   import CommonsPub.Utils.Simulation
   import CommonsPub.Utils.Trendy
-  import CommonsPub.Test.Faking
+  # import CommonsPub.Test.Faking
 
   import Measurement.Simulate
 
+  alias ValueFlows.Claim.Claims
   alias ValueFlows.Planning.Intent.Intents
   alias ValueFlows.Proposal.Proposals
-  # alias ValueFlows.Proposal.ProposedIntent
   alias ValueFlows.Observation.EconomicEvent.EconomicEvents
   alias ValueFlows.Observation.EconomicResource.EconomicResources
   alias ValueFlows.Observation.Process.Processes
@@ -21,15 +21,46 @@ defmodule ValueFlows.Simulate do
 
   ### Start fake data functions
 
+  def claim(base \\ %{}) do
+    base
+    |> Map.put_new_lazy(:note, &summary/0)
+    |> Map.put_new_lazy(:agreed_in, &url/0)
+    |> Map.put_new_lazy(:finished, &bool/0)
+    |> Map.put_new_lazy(:created, &past_datetime/0)
+    |> Map.put_new_lazy(:due, &future_datetime/0)
+    |> Map.put_new_lazy(:action, &action_id/0)
+    |> Map.put_new_lazy(:resource_classified_as, fn -> some(1..5, &url/0) end)
+  end
+
+  def claim_input(base \\ %{}) do
+    base
+    |> Map.put_new_lazy("note", &summary/0)
+    # FIXME: URI doesn't work, scalar?
+    # |> Map.put_new_lazy("agreedIn", &url/0)
+    |> Map.put_new_lazy("finished", &bool/0)
+    |> Map.put_new_lazy("created", &past_datetime_iso/0)
+    |> Map.put_new_lazy("due", &future_datetime_iso/0)
+    |> Map.put_new_lazy("action", &action_id/0)
+
+    # |> Map.put_new_lazy("resourceClassifiedAs", fn -> some(1..5, &url/0) end)
+  end
+
   def agent_type(), do: Faker.Util.pick([:person, :organization])
 
   def agent(base \\ %{}) do
     base
-    |> Map.put_new_lazy(:id, &uuid/0)
+    # |> Map.put_new_lazy(:id, &ulid/0)
     |> Map.put_new_lazy(:name, &name/0)
     |> Map.put_new_lazy(:note, &summary/0)
     |> Map.put_new_lazy(:image, &image/0)
+    |> Map.put_new_lazy(:primary_location, &fake_geolocation_id/0)
     |> Map.put_new_lazy(:agent_type, &agent_type/0)
+  end
+
+  def fake_agent!(overrides \\ %{}, opts \\ []) when is_map(overrides) and is_list(opts) do
+    ValueFlows.Agent.Agents.character_to_agent(
+      a_fake_user!(ValueFlows.Agent.Agents.agent_to_character(agent(overrides)))
+    )
   end
 
   def resource_specification(base \\ %{}) do
@@ -55,13 +86,14 @@ defmodule ValueFlows.Simulate do
   def actions, do: Actions.actions_list()
 
   def action_id, do: action().id
-  def fake_user_id, do: fake_user!().id
+  def fake_agent_id, do: fake_agent!().id
+  def fake_geolocation_id, do: Geolocation.Simulate.fake_geolocation!().id
 
   def economic_event(base \\ %{}) do
     base
     |> Map.put_new_lazy(:action, &action_id/0)
-    |> Map.put_new_lazy(:provider, &fake_user_id/0)
-    |> Map.put_new_lazy(:receiver, &fake_user_id/0)
+    |> Map.put_new_lazy(:provider, &fake_agent_id/0)
+    |> Map.put_new_lazy(:receiver, &fake_agent_id/0)
     |> Map.put_new_lazy(:note, &summary/0)
     |> Map.put_new_lazy(:has_beginning, &past_datetime/0)
     |> Map.put_new_lazy(:has_end, &future_datetime/0)
@@ -74,8 +106,8 @@ defmodule ValueFlows.Simulate do
   def economic_event_input(base \\ %{}) do
     base
     |> Map.put_new_lazy("action", &action_id/0)
-    |> Map.put_new_lazy("provider", &fake_user_id/0)
-    |> Map.put_new_lazy("receiver", &fake_user_id/0)
+    |> Map.put_new_lazy("provider", &fake_agent_id/0)
+    |> Map.put_new_lazy("receiver", &fake_agent_id/0)
     |> Map.put_new_lazy("note", &summary/0)
     |> Map.put_new_lazy("hasBeginning", &past_datetime_iso/0)
     |> Map.put_new_lazy("hasEnd", &future_datetime_iso/0)
@@ -89,7 +121,7 @@ defmodule ValueFlows.Simulate do
     |> Map.put_new_lazy(:name, &name/0)
     |> Map.put_new_lazy(:note, &summary/0)
     |> Map.put_new_lazy(:tracking_identifier, &uuid/0)
-    # |> Map.put_new_lazy(:state, &action_id/0)
+    |> Map.put_new_lazy(:state, &action_id/0)
     # |> Map.put_new_lazy(:accounting_quantity, &measure/0)
     # |> Map.put_new_lazy(:onhand_quantity, &measure/0)
     # |> Map.put_new_lazy(:unit_of_effort, &unit/0)
@@ -188,14 +220,14 @@ defmodule ValueFlows.Simulate do
     |> Map.put_new_lazy(:has_end, &future_datetime/0)
     |> Map.put_new_lazy(:has_point_in_time, &future_datetime/0)
     |> Map.put_new_lazy(:due, &future_datetime/0)
-    # TODO: list of URIs
+    # TODO: list of URIs?
     |> Map.put_new_lazy(:resource_classified_as, fn -> some(1..5, &url/0) end)
     |> Map.put_new_lazy(:finished, &bool/0)
     |> Map.put_new_lazy(:is_public, &truth/0)
     |> Map.put_new_lazy(:is_disabled, &falsehood/0)
   end
 
-  def intent_input(unit, base \\ %{}) do
+  def intent_input(base \\ %{}) do
     base
     |> Map.put_new_lazy("name", &name/0)
     |> Map.put_new_lazy("note", &summary/0)
@@ -207,41 +239,40 @@ defmodule ValueFlows.Simulate do
     |> Map.put_new_lazy("has_point_in_time", &future_datetime_iso/0)
     |> Map.put_new_lazy("due", &future_datetime_iso/0)
     |> Map.put_new_lazy("finished", &bool/0)
-    |> Map.put_new_lazy("available_quantity", fn -> measure_input(unit) end)
-    |> Map.put_new_lazy("resource_quantity", fn -> measure_input(unit) end)
-    |> Map.put_new_lazy("effort_quantity", fn -> measure_input(unit) end)
   end
 
-  def fake_intent!(user, unit \\ nil, context \\ nil, overrides \\ %{})
-
-  def fake_intent!(user, unit, context, overrides) when is_nil(unit) do
-    {:ok, intent} = Intents.create(user, action(), context, intent(overrides))
-    intent
+  @doc "Shorter version of fake_claim!/4, but instead generates a provider and receiver."
+  def fake_claim!(user, overrides \\ %{}) do
+    fake_claim!(user, fake_agent!(), fake_agent!(), overrides)
   end
 
-  def fake_intent!(user, unit, context, overrides) do
+  def fake_claim!(user, provider, receiver, overrides \\ %{}) do
+    {:ok, claim} = Claims.create(user, provider, receiver, claim(overrides))
+    claim
+  end
+
+  def fake_intent!(user, overrides \\ %{}) do
+    unit = fake_unit!(user)
+    fake_intent!(user, overrides, unit)
+  end
+
+  def fake_intent!(user, overrides, unit) do
     measure_attrs = %{unit_id: unit.id}
 
     measures = %{
+      available_quantity: measure(measure_attrs),
       resource_quantity: measure(measure_attrs),
-      effort_quantity: measure(measure_attrs),
-      available_quantity: measure(measure_attrs)
+      effort_quantity: measure(measure_attrs)
     }
 
     overrides = Map.merge(overrides, measures)
-    {:ok, intent} = Intents.create(user, action(), context, intent(overrides))
+
+    {:ok, intent} = Intents.create(user, intent(overrides))
     intent
   end
 
-  def fake_proposal!(user, context \\ nil, overrides \\ %{})
-
-  def fake_proposal!(user, context, overrides) when is_nil(context) do
+  def fake_proposal!(user, overrides \\ %{}) do
     {:ok, proposal} = Proposals.create(user, proposal(overrides))
-    proposal
-  end
-
-  def fake_proposal!(user, context, overrides) do
-    {:ok, proposal} = Proposals.create(user, context, proposal(overrides))
     proposal
   end
 
@@ -261,15 +292,8 @@ defmodule ValueFlows.Simulate do
     extra ++ ~w(id name note created has_beginning has_end unit_based)a
   end
 
-  def fake_process_specification!(user, context \\ nil, overrides \\ %{})
-
-  def fake_process_specification!(user, context, overrides) when is_nil(context) do
+  def fake_process_specification!(user, overrides \\ %{}) do
     {:ok, spec} = ProcessSpecifications.create(user, process_specification(overrides))
-    spec
-  end
-
-  def fake_process_specification!(user, context, overrides) do
-    {:ok, spec} = ProcessSpecifications.create(user, context, process_specification(overrides))
     spec
   end
 
@@ -282,13 +306,17 @@ defmodule ValueFlows.Simulate do
     measure_attrs = %{unit_id: unit.id}
 
     measures = %{
-      resource_quantity: measure(measure_attrs)
+      resource_quantity: measure(measure_attrs),
+      effort_quantity: measure(measure_attrs)
     }
 
     overrides = Map.merge(overrides, measures)
 
-    {:ok, event} = EconomicEvents.create(user, economic_event(overrides))
-    event
+    with {:ok, event} <- EconomicEvents.create(user, economic_event(overrides)) do
+      event
+    else e ->
+      e
+    end
   end
 
   def fake_process!(user, overrides \\ %{}) do
@@ -311,7 +339,7 @@ defmodule ValueFlows.Simulate do
 
     measures = %{
       accounting_quantity: measure(measure_attrs),
-      onhand_quantity: measure(measure_attrs),
+      onhand_quantity: measure(measure_attrs)
     }
 
     overrides = Map.merge(overrides, measures)

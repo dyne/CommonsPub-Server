@@ -112,7 +112,7 @@ type GeolocationQuery {
     limit: Int
     before: [Cursor]
     after: [Cursor]
-  ): [SpatialThingsPage!]
+  ): SpatialThingsPage!
 }
 
 type GeolocationMutation {

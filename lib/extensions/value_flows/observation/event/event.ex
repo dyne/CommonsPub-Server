@@ -84,7 +84,9 @@ defmodule ValueFlows.Observation.EconomicEvent do
 
   @required ~w(action_id provider_id receiver_id is_public)a
   @cast @required ++
-          ~w(note resource_classified_as agreed_in has_beginning has_end has_point_in_time is_disabled)a
+          ~w(note resource_classified_as agreed_in has_beginning has_end has_point_in_time is_disabled)a ++
+          ~w(input_of_id output_of_id resource_conforms_to_id resource_inventoried_as_id to_resource_inventoried_as_id)a ++
+          ~w(triggered_by_id at_location_id context_id)a
 
   def create_changeset(
         %User{} = creator,
@@ -97,6 +99,7 @@ defmodule ValueFlows.Observation.EconomicEvent do
       creator_id: creator.id,
       is_public: true
     )
+    |> change_measures(attrs)
     |> common_changeset()
   end
 
@@ -108,75 +111,8 @@ defmodule ValueFlows.Observation.EconomicEvent do
   def update_changeset(%EconomicEvent{} = event, attrs) do
     event
     |> Changeset.cast(attrs, @cast)
+    |> change_measures(attrs)
     |> common_changeset()
-  end
-
-  def change_context(changeset, %{id: _} = context) do
-    Changeset.change(changeset,
-      context: context,
-      context_id: context.id
-    )
-  end
-
-  def change_provider(changeset, %{id: _} = provider) do
-    Changeset.change(changeset, provider_id: provider.id)
-  end
-
-  def change_receiver(changeset, %{id: _} = receiver) do
-    Changeset.change(changeset, receiver_id: receiver.id)
-  end
-
-  def change_action(changeset, %Action{} = action) do
-    Changeset.change(changeset, action_id: action.id)
-  end
-
-  def change_input_process(changeset, %Process{} = item) do
-    Changeset.change(changeset,
-      input_of: item,
-      input_of_id: item.id
-    )
-  end
-
-  def change_output_process(changeset, %Process{} = item) do
-    Changeset.change(changeset,
-      output_of: item,
-      output_of_id: item.id
-    )
-  end
-
-  def change_resource_conforms_to(changeset, %ResourceSpecification{} = conforms_to) do
-    Changeset.change(changeset,
-      resource_conforms_to: conforms_to,
-      resource_conforms_to_id: conforms_to.id
-    )
-  end
-
-  def change_resource_inventoried_as(changeset, %EconomicResource{} = item) do
-    Changeset.change(changeset,
-      resource_inventoried_as: item,
-      resource_inventoried_as_id: item.id
-    )
-  end
-
-  def change_to_resource_inventoried_as(changeset, %EconomicResource{} = item) do
-    Changeset.change(changeset,
-      to_resource_inventoried_as: item,
-      to_resource_inventoried_as_id: item.id
-    )
-  end
-
-  def change_at_location(changeset, %Geolocation{} = location) do
-    Changeset.change(changeset,
-      at_location: location,
-      at_location_id: location.id
-    )
-  end
-
-  def change_triggered_by_event(changeset, %EconomicEvent{} = item) do
-    Changeset.change(changeset,
-      triggered_by: item,
-      triggered_by_id: item.id
-    )
   end
 
   def change_measures(changeset, %{} = attrs) do
@@ -196,8 +132,12 @@ defmodule ValueFlows.Observation.EconomicEvent do
     |> change_public()
     |> change_disabled()
     |> Changeset.foreign_key_constraint(
-      :at_location_id,
-      name: :vf_event_at_location_id_fkey
+      :resource_inventoried_as_id,
+      name: :vf_event_resource_inventoried_as_id_fkey
+    )
+    |> Changeset.foreign_key_constraint(
+      :to_resource_inventoried_as_id,
+      name: :vf_event_to_resource_inventoried_as_id_fkey
     )
   end
 

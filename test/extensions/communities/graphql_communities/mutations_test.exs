@@ -26,7 +26,7 @@ defmodule CommonsPub.Web.GraphQL.Communities.MutationsTest do
     end
   end
 
-  describe "update_community" do
+  describe "update community" do
     test "works for the community owner or admin" do
       alice = fake_user!()
       lucy = fake_admin!()

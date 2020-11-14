@@ -34,8 +34,7 @@ defmodule CommonsPub.Resources do
           {:ok, Resource.t()} | {:error, Changeset.t()}
   def create(%User{} = creator, %{} = collection_or_context, attrs) when is_map(attrs) do
     Repo.transact_with(fn ->
-      collection_or_context =
-        CommonHelper.maybe_preload(collection_or_context, :character)
+      collection_or_context = CommonsPub.Repo.maybe_preload(collection_or_context, :character)
 
       with {:ok, resource} <- insert_resource(creator, collection_or_context, attrs),
            {:ok, resource} <- ValueFlows.Util.try_tag_thing(creator, resource, attrs),
@@ -131,9 +130,9 @@ defmodule CommonsPub.Resources do
   @spec soft_delete(User.t(), Resource.t()) :: {:ok, Resource.t()} | {:error, Changeset.t()}
   def soft_delete(%User{} = user, %Resource{} = resource) do
     Repo.transact_with(fn ->
-      resource = Repo.preload(resource, [:context, collection: [:character]])
+      resource = Repo.preload(resource, context: [:character])
 
-      with {:ok, deleted} <- Common.soft_delete(resource),
+      with {:ok, deleted} <- Common.Deletion.soft_delete(resource),
            :ok <- chase_delete(user, deleted.id),
            :ok <- ap_publish("delete", resource) do
         {:ok, deleted}
@@ -163,19 +162,24 @@ defmodule CommonsPub.Resources do
     end
   end
 
-  defp publish(_creator, %{outbox_id: context_outbox}, _resource, activity) do
-    # _community = Repo.preload(collection, :community).community
-    feeds = [context_outbox, Feeds.instance_outbox_id()]
+  defp publish(creator, context, resource, activity) do
+    feeds = [
+      CommonsPub.Feeds.outbox_id(context),
+      CommonsPub.Feeds.outbox_id(creator),
+      CommonsPub.Feeds.outbox_id(resource),
+      Feeds.instance_outbox_id()
+    ]
+
     FeedActivities.publish(activity, feeds)
   end
 
-  defp publish(_creator, _context, _resource, activity) do
-    feeds = [Feeds.instance_outbox_id()]
-    FeedActivities.publish(activity, feeds)
-  end
+  defp publish(creator, resource, activity) do
+    feeds = [
+      CommonsPub.Feeds.outbox_id(creator),
+      CommonsPub.Feeds.outbox_id(resource),
+      Feeds.instance_outbox_id()
+    ]
 
-  defp publish(_creator, _resource, activity) do
-    feeds = [Feeds.instance_outbox_id()]
     FeedActivities.publish(activity, feeds)
   end
 
@@ -192,12 +196,96 @@ defmodule CommonsPub.Resources do
 
   defp ap_publish(_, _), do: :ok
 
-  def indexing_object_format(%CommonsPub.Resources.Resource{} = resource) do
-    resource = CommonHelper.maybe_preload(resource, :creator)
-    resource = CommonHelper.maybe_preload(resource, :context)
-    context = CommonHelper.maybe_preload(Map.get(resource, :context), :character)
+  def ap_publish_activity("create", %Resource{} = resource) do
+    # FIXME: optional
+    with {:ok, context} <- ActivityPub.Actor.get_cached_by_local_id(resource.context_id),
+         {:ok, actor} <- ActivityPub.Actor.get_cached_by_local_id(resource.creator_id),
+         content_url <- CommonsPub.Uploads.remote_url_from_id(resource.content_id),
+         icon_url <- CommonsPub.Uploads.remote_url_from_id(resource.icon_id),
+         ap_id <- CommonsPub.ActivityPub.Utils.generate_object_ap_id(resource),
+         object <- %{
+           "id" => ap_id,
+           "name" => resource.name,
+           "url" => content_url,
+           "icon" => icon_url,
+           "actor" => actor.ap_id,
+           "attributedTo" => actor.ap_id,
+           "context" => context.ap_id,
+           "summary" => Map.get(resource, :summary),
+           "type" => "Document",
+           "tag" => resource.license,
+           "author" => CommonsPub.ActivityPub.Utils.create_author_object(resource),
+           #  "mediaType" => resource.content.media_type
+           "subject" => Map.get(resource, :subject),
+           "level" => Map.get(resource, :level),
+           "language" => Map.get(resource, :language)
+         },
+         params = %{
+           actor: actor,
+           to: [CommonsPub.ActivityPub.Utils.public_uri(), context.ap_id],
+           object: object,
+           context: context.ap_id,
+           additional: %{
+             "cc" => [actor.data["followers"]]
+           }
+         },
+         {:ok, activity} <- ActivityPub.create(params, resource.id) do
+      Ecto.Changeset.change(resource, %{canonical_url: activity.object.data["id"]})
+      |> CommonsPub.Repo.update()
 
-    resource = CommonHelper.maybe_preload(resource, :content)
+      {:ok, activity}
+    else
+      e -> {:error, e}
+    end
+  end
+
+  # Activity: Create / Object : Document
+  def ap_receive_activity(
+        %{data: %{"type" => "Create", "context" => context}} = _activity,
+        %{data: %{"type" => "Document", "actor" => actor}} = object
+      ) do
+    with {:ok, collection} <- CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(context),
+         {:ok, actor} <- CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(actor),
+         {:ok, content} <-
+           CommonsPub.Uploads.upload(
+             CommonsPub.Uploads.ResourceUploader,
+             actor,
+             %{url: object.data["url"]},
+             %{is_public: true}
+           ),
+         icon_url <- CommonsPub.ActivityPub.Utils.maybe_fix_image_object(object.data["icon"]),
+         icon_id <- CommonsPub.ActivityPub.Utils.maybe_create_icon_object(icon_url, actor),
+         attrs <- %{
+           is_public: true,
+           is_local: false,
+           is_disabled: false,
+           name: object.data["name"],
+           canonical_url: object.data["id"],
+           summary: object.data["summary"],
+           content_id: content.id,
+           license: object.data["tag"],
+           icon_id: icon_id,
+           author: CommonsPub.ActivityPub.Utils.get_author(object.data["author"]),
+           subject: object.data["subject"],
+           level: object.data["level"],
+           language: object.data["language"]
+         },
+         {:ok, resource} <-
+           CommonsPub.Resources.create(actor, collection, attrs) do
+      ActivityPub.Object.update(object, %{pointer_id: resource.id})
+      # Indexer.maybe_index_object(resource) # now being called in CommonsPub.Resources.create
+      :ok
+    else
+      {:error, e} -> {:error, e}
+    end
+  end
+
+  def indexing_object_format(%CommonsPub.Resources.Resource{} = resource) do
+    resource = CommonsPub.Repo.maybe_preload(resource, :creator)
+    resource = CommonsPub.Repo.maybe_preload(resource, :context)
+    context = CommonsPub.Repo.maybe_preload(Map.get(resource, :context), :character)
+
+    resource = CommonsPub.Repo.maybe_preload(resource, :content)
 
     likes_count =
       case CommonsPub.Likes.LikerCounts.one(context: resource.id) do

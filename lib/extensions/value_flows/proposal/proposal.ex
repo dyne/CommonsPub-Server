@@ -48,24 +48,8 @@ defmodule ValueFlows.Proposal do
   end
 
   @required ~w(name is_public)a
-  @cast @required ++ ~w(note has_beginning has_end unit_based eligible_location_id)a
-
-  def create_changeset(
-        %User{} = creator,
-        %{id: _} = context,
-        attrs
-      ) do
-    %Proposal{}
-    |> Changeset.cast(attrs, @cast)
-    |> Changeset.validate_required(@required)
-    |> Changeset.change(
-      created: DateTime.utc_now(),
-      creator_id: creator.id,
-      context_id: context.id,
-      is_public: true
-    )
-    |> common_changeset()
-  end
+  @cast @required ++
+    ~w(note has_beginning has_end unit_based eligible_location_id context_id)a
 
   def create_changeset(
         %User{} = creator,
@@ -79,17 +63,6 @@ defmodule ValueFlows.Proposal do
       creator_id: creator.id,
       is_public: true
     )
-    |> common_changeset()
-  end
-
-  def update_changeset(
-        %Proposal{} = proposal,
-        %{id: _} = context,
-        attrs
-      ) do
-    proposal
-    |> Changeset.cast(attrs, @cast)
-    |> Changeset.change(context_id: context.id)
     |> common_changeset()
   end
 
@@ -97,13 +70,6 @@ defmodule ValueFlows.Proposal do
     proposal
     |> Changeset.cast(attrs, @cast)
     |> common_changeset()
-  end
-
-  def change_eligible_location(changeset, %Geolocation{} = location) do
-    Changeset.change(changeset,
-      eligible_location: location,
-      eligible_location_id: location.id
-    )
   end
 
   defp common_changeset(changeset) do
@@ -114,4 +80,10 @@ defmodule ValueFlows.Proposal do
       name: :vf_proposal_eligible_location_id_fkey
     )
   end
+
+  def context_module, do: ValueFlows.Proposal.Proposals
+
+  def queries_module, do: ValueFlows.Proposal.Queries
+
+  def follow_filters, do: [:default]
 end

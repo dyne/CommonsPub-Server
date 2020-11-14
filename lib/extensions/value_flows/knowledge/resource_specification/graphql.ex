@@ -1,45 +1,20 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Knowledge.ResourceSpecification.GraphQL do
-
   require Logger
-  # import ValueFlows.Util, only: [maybe_put: 3]
 
-  alias CommonsPub.{
-    # Activities,
-    # Communities,
-    GraphQL,
-    Repo
-    # User
-  }
+  alias CommonsPub.{GraphQL, Repo}
 
   alias CommonsPub.GraphQL.{
     ResolveField,
-    # ResolveFields,
-    # ResolvePage,
     ResolvePages,
     ResolveRootPage,
     FetchPage
-    # FetchPages,
-    # CommonResolver
   }
-
-  # alias CommonsPub.Resources.Resource
-  # alias CommonsPub.Common.Enums
-  alias CommonsPub.Meta.Pointers
-  # alias CommonsPub.Communities.Community
-  # alias CommonsPub.Web.GraphQL.CommunitiesResolver
 
   alias ValueFlows.Knowledge.ResourceSpecification
   alias ValueFlows.Knowledge.ResourceSpecification.ResourceSpecifications
   alias ValueFlows.Knowledge.ResourceSpecification.Queries
-  # alias ValueFlows.Knowledge.Action.Actions
-  # alias CommonsPub.Web.GraphQL.CommonResolver
   alias CommonsPub.Web.GraphQL.UploadResolver
-
-  # SDL schema import
-  #  use Absinthe.Schema.Notation
- # import_sdl path: "lib/value_flows/graphql/schemas/planning.gql"
-
 
   ## resolvers
 
@@ -72,11 +47,26 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.GraphQL do
   end
 
   def all_resource_specs(_, _) do
-    ResourceSpecifications.many()
+    ResourceSpecifications.many([
+      :default
+    ])
+  end
+
+  def fetch_default_unit_of_effort_edge(%{default_unit_of_effort_id: id} = thing, _, _)
+      when not is_nil(id) do
+    thing = Repo.preload(thing, :default_unit_of_effort)
+    {:ok, Map.get(thing, :default_unit_of_effort)}
+  end
+
+  def fetch_default_unit_of_effort_edge(_, _, _) do
+    {:ok, nil}
+  end
+
+  def fetch_conforming_resources_edge(%{conforms_to: id}, page_opts, info) when not is_nil(id) do
+    ValueFlows.Observation.EconomicResource.GraphQL.spec_conforms_to_resources(%{conforms_to: id}, page_opts, info)
   end
 
   def resource_specs_filtered(page_opts, _) do
-    IO.inspect(resource_specs_filtered: page_opts)
     resource_specs_filter(page_opts, [])
   end
 
@@ -99,17 +89,12 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.GraphQL do
          _,
          filters_acc
        ) do
-    IO.inspect(filters_query: filters_acc)
-
     # finally, if there's no more known params to acumulate, query with the filters
     ResourceSpecifications.many(filters_acc)
   end
 
   defp resource_specs_filter_next(param_remove, filter_add, page_opts, filters_acc)
        when is_list(param_remove) and is_list(filter_add) do
-    IO.inspect(resource_specs_filter_next: param_remove)
-    IO.inspect(resource_specs_filter_add: filter_add)
-
     resource_specs_filter(Map.drop(page_opts, param_remove), filters_acc ++ filter_add)
   end
 
@@ -130,7 +115,6 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.GraphQL do
       :default,
       user: GraphQL.current_user(info),
       id: id
-      # preload: :tags
     ])
   end
 
@@ -184,41 +168,6 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.GraphQL do
     })
   end
 
-
-
-  def create_resource_spec(
-        %{resource_specification: %{in_scope_of: context_ids} = resource_spec_attrs},
-        info
-      )
-      when is_list(context_ids) do
-    # FIXME: support multiple contexts?
-    context_id = List.first(context_ids)
-
-    create_resource_spec(
-      %{resource_specification: Map.merge(resource_spec_attrs, %{in_scope_of: context_id})},
-      info
-    )
-  end
-
-  def create_resource_spec(
-        %{resource_specification: %{in_scope_of: context_id} = resource_spec_attrs},
-        info
-      )
-      when not is_nil(context_id) do
-    Repo.transact_with(fn ->
-      with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
-           {:ok, pointer} <- Pointers.one(id: context_id),
-           context = Pointers.follow!(pointer),
-           {:ok, uploads} <- UploadResolver.upload(user, resource_spec_attrs, info),
-           resource_spec_attrs = Map.merge(resource_spec_attrs, uploads),
-           resource_spec_attrs = Map.merge(resource_spec_attrs, %{is_public: true}),
-           {:ok, resource_spec} <-
-             ResourceSpecifications.create(user, context, resource_spec_attrs) do
-        {:ok, %{resource_specification: resource_spec}}
-      end
-    end)
-  end
-
   # FIXME: duplication!
   def create_resource_spec(%{resource_specification: resource_spec_attrs}, info) do
     Repo.transact_with(fn ->
@@ -232,34 +181,13 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.GraphQL do
     end)
   end
 
-  def update_resource_spec(%{resource_specification: %{in_scope_of: context_ids} = changes}, info) do
-    context_id = List.first(context_ids)
-
-    Repo.transact_with(fn ->
-      do_update(changes, info, fn resource_spec, changes ->
-        with {:ok, pointer} <- Pointers.one(id: context_id) do
-          context = Pointers.follow!(pointer)
-          ResourceSpecifications.update(resource_spec, context, changes)
-        end
-      end)
-    end)
-  end
-
-  def update_resource_spec(%{resource_specification: changes}, info) do
-    Repo.transact_with(fn ->
-      do_update(changes, info, fn resource_spec, changes ->
-        ResourceSpecifications.update(resource_spec, changes)
-      end)
-    end)
-  end
-
-  defp do_update(%{id: id} = changes, info, update_fn) do
+  def update_resource_spec(%{resource_specification: %{id: id} = changes}, info) do
     with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
          {:ok, resource_spec} <- resource_spec(%{id: id}, info),
          :ok <- ensure_update_permission(user, resource_spec),
          {:ok, uploads} <- UploadResolver.upload(user, changes, info),
          changes = Map.merge(changes, uploads),
-         {:ok, resource_spec} <- update_fn.(resource_spec, changes) do
+         {:ok, resource_spec} <- ResourceSpecifications.update(resource_spec, changes) do
       {:ok, %{resource_specification: resource_spec}}
     end
   end

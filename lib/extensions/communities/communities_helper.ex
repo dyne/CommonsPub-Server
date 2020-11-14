@@ -60,7 +60,7 @@ defmodule CommonsPub.Communities.Web.CommunitiesHelper do
 
     ids = Enum.map(edges, & &1.context_id)
 
-    communities = contexts_fetch!(ids)
+    communities = CommonsPub.Contexts.contexts_fetch!(ids)
 
     communities =
       if(communities) do

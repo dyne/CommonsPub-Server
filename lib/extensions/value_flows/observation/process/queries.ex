@@ -241,20 +241,12 @@ defmodule ValueFlows.Observation.Process.Queries do
     select(q, [process: c], {field(c, ^key), count(c.id)})
   end
 
-  def filter(q, {:preload, :provider}) do
-    preload(q, [pointer: p], provider: p)
-  end
-
-  def filter(q, {:preload, :receiver}) do
-    preload(q, [pointer: p], receiver: p)
-  end
-
-  def filter(q, {:preload, :at_location}) do
-    q
-    |> join_to(:geolocation)
-    |> preload(:at_location)
-
-    # preload(q, [geolocation: g], at_location: g)
+  def filter(q, {:preload, :all}) do
+    preload(q, [
+      :based_on,
+      :creator,
+      :context
+    ])
   end
 
   # pagination

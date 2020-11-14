@@ -1,6 +1,7 @@
 defmodule ValueFlows.Observation.Process.ProcessesTest do
   use CommonsPub.Web.ConnCase, async: true
 
+  import CommonsPub.Utils.Simulation
   import CommonsPub.Test.Faking
   import CommonsPub.Tag.Simulate
   import CommonsPub.Utils.Trendy, only: [some: 2]
@@ -132,17 +133,18 @@ defmodule ValueFlows.Observation.Process.ProcessesTest do
     test "can create a process" do
       user = fake_user!()
 
-      assert {:ok, spec} = Processes.create(user, process())
-      assert_process(spec)
+      assert {:ok, process} = Processes.create(user, process())
+      assert_process(process)
     end
 
     test "can create a process with context" do
       user = fake_user!()
       parent = fake_user!()
 
-      assert {:ok, spec} = Processes.create(user, parent, process())
-      assert_process(spec)
-      assert spec.context_id == parent.id
+      attrs = %{in_scope_of: [parent.id]}
+      assert {:ok, process} = Processes.create(user, process(attrs))
+      assert_process(process)
+      assert process.context.id == parent.id
     end
 
     test "can create a process with tags" do

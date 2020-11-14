@@ -89,7 +89,7 @@ defmodule CommonsPub.Threads do
   @spec soft_delete(User.t(), Thread.t()) :: {:ok, Thread.t()} | {:error, Changeset.t()}
   def soft_delete(%User{} = user, %Thread{} = thread) do
     Repo.transact_with(fn ->
-      with {:ok, thread} <- Common.soft_delete(thread),
+      with {:ok, thread} <- Common.Deletion.soft_delete(thread),
            :ok <- chase_delete(user, thread.id) do
         {:ok, thread}
       end

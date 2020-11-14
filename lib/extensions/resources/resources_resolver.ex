@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule CommonsPub.Web.GraphQL.ResourcesResolver do
   alias CommonsPub.{Collections, GraphQL, Repo, Resources}
-  alias CommonsPub.Characters.Character
+  # alias CommonsPub.Characters.Character
   alias CommonsPub.Collections.Collection
   alias CommonsPub.GraphQL.{FetchFields, ResolveFields, ResolvePages, FetchPage}
   alias CommonsPub.Resources.Resource
@@ -11,11 +11,11 @@ defmodule CommonsPub.Web.GraphQL.ResourcesResolver do
     Resources.one(id: id, user: GraphQL.current_user(info))
   end
 
-  def is_local_edge(%{collection: %Collection{character: %Character{peer_id: peer_id}}}, _, _) do
+  def is_local_edge(%{context_id: %{character: %{peer_id: peer_id}}}, _, _) do
     {:ok, is_nil(peer_id)}
   end
 
-  def is_local_edge(%{collection_id: id}, _, info) do
+  def is_local_edge(%{context_id: id}, _, info) do
     ResolveFields.run(%ResolveFields{
       module: __MODULE__,
       fetcher: :fetch_collection_edge,
@@ -36,9 +36,9 @@ defmodule CommonsPub.Web.GraphQL.ResourcesResolver do
     })
   end
 
-  def collection_edge(%Resource{collection: %Collection{} = c}, _, _info), do: {:ok, c}
+  def collection_edge(%Resource{context: %Collection{} = c}, _, _info), do: {:ok, c}
 
-  def collection_edge(%Resource{collection_id: id}, _, info) do
+  def collection_edge(%Resource{context_id: id}, _, info) do
     ResolveFields.run(%ResolveFields{
       module: __MODULE__,
       fetcher: :fetch_collection_edge,
@@ -72,7 +72,7 @@ defmodule CommonsPub.Web.GraphQL.ResourcesResolver do
       query: Resource,
       group_fn: &elem(&1, 0),
       map_fn: &elem(&1, 1),
-      filters: [collection: ids, group_count: :collection_id]
+      filters: [collection: ids, group_count: :context_id]
     })
   end
 
@@ -169,21 +169,6 @@ defmodule CommonsPub.Web.GraphQL.ResourcesResolver do
   #   )
   # end
 
-  @doc """
-  Deprecated - create resource in collection
-  """
-  def create_resource(%{resource: res_attrs, collection_id: collection_id} = input_attrs, info) do
-    with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info) do
-      Repo.transact_with(fn ->
-        with {:ok, uploads} <- UploadResolver.upload(user, input_attrs, info),
-             {:ok, collection} <- Collections.one([:default, user: user, id: collection_id]),
-             res_attrs = Map.merge(res_attrs, uploads),
-             {:ok, resource} <- Resources.create(user, collection, res_attrs) do
-          {:ok, %{resource | collection: collection}}
-        end
-      end)
-    end
-  end
 
   def create_resource(%{context_id: context_id} = input_attrs, info)
       when is_nil(context_id) or context_id == "" do
@@ -209,13 +194,6 @@ defmodule CommonsPub.Web.GraphQL.ResourcesResolver do
   end
 
   @doc """
-  Deprecated - create resource in collection
-  """
-  def create_resource(%{resource: _res_attrs, collection_id: collection_id} = input_attrs, info) do
-    create_resource(Map.merge(input_attrs, %{context_id: collection_id}), info)
-  end
-
-  @doc """
   Create resource without context
   """
   def create_resource(%{resource: res_attrs} = input_attrs, info) do
@@ -238,8 +216,7 @@ defmodule CommonsPub.Web.GraphQL.ResourcesResolver do
 
           permitted? =
             user.local_user.is_instance_admin or
-              resource.collection.creator_id == user.id or
-              resource.collection.community.creator_id == user.id
+              Map.get(Map.get(resource, :context, %{}), :creator_id) == user.id
 
           if permitted? do
             with {:ok, uploads} <- UploadResolver.upload(user, input_attrs, info) do
@@ -253,10 +230,10 @@ defmodule CommonsPub.Web.GraphQL.ResourcesResolver do
     end
   end
 
-  def copy_resource(%{resource_id: resource_id, collection_id: collection_id}, info) do
+  def copy_resource(%{resource_id: resource_id, context_id: context_id}, info) do
     with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info) do
       Repo.transact_with(fn ->
-        with {:ok, collection} <- Collections.one([:default, id: collection_id, user: user]),
+        with {:ok, collection} <- Collections.one([:default, id: context_id, user: user]),
              {:ok, resource} <- resource(%{resource_id: resource_id}, info),
              res_attrs = Map.take(resource, ~w(content_id name summary icon url license)a) do
           Resources.create(user, collection, res_attrs)

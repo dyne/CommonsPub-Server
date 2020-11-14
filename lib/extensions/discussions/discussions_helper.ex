@@ -31,7 +31,7 @@ defmodule CommonsPub.Discussions.Web.DiscussionsHelper do
   def prepare_comment(comment, _current_user \\ nil)
 
   def prepare_comment(%CommonsPub.Threads.Comment{} = comment, _current_user) do
-    comment = maybe_preload(comment, :creator)
+    comment = CommonsPub.Repo.maybe_preload(comment, :creator)
 
     creator = ProfilesHelper.prepare(comment.creator, %{icon: true, character: true})
 
@@ -88,7 +88,7 @@ defmodule CommonsPub.Discussions.Web.DiscussionsHelper do
         thread
       end
 
-    thread = maybe_preload(thread, :creator)
+    thread = CommonsPub.Repo.maybe_preload(thread, :creator)
 
     creator = ProfilesHelper.prepare(thread.creator, %{icon: true, character: true})
 

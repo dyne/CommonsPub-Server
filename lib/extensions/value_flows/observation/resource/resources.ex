@@ -1,24 +1,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
-  alias __MODULE__
+  import CommonsPub.Common, only: [maybe_put: 3, attr_get_id: 2]
+
   alias CommonsPub.{Activities, Common, Feeds, Repo}
   alias CommonsPub.GraphQL.{Fields, Page}
-  alias CommonsPub.Common.Contexts
+  alias CommonsPub.Contexts
   alias CommonsPub.Feeds.FeedActivities
   alias CommonsPub.Users.User
-  alias CommonsPub.Meta.Pointers
 
-  alias Geolocation.Geolocations
-  # alias Measurement.Measure
-  alias Measurement.Unit.Units
-  alias ValueFlows.Knowledge.ResourceSpecification.ResourceSpecifications
-  alias ValueFlows.Knowledge.ProcessSpecification.ProcessSpecifications
   alias ValueFlows.Observation.EconomicResource
   alias ValueFlows.Observation.EconomicResource.Queries
   alias ValueFlows.Observation.EconomicEvent.EconomicEvents
-  alias ValueFlows.Observation.Process.Processes
-  # alias ValueFlows.Knowledge.Action
-  alias ValueFlows.Knowledge.Action.Actions
 
   def cursor(), do: &[&1.id]
   def test_cursor(), do: &[&1["id"]]
@@ -99,10 +91,6 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
     EconomicEvents.many([:default, track_resource: id])
   end
 
-  def track(_) do
-    {:ok, nil}
-  end
-
   def trace(%{id: id}) do
     trace(id)
   end
@@ -111,23 +99,9 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
     EconomicEvents.many([:default, trace_resource: id])
   end
 
-  def trace(_) do
-    {:ok, nil}
-  end
-
   def preload_all(resource) do
-    Repo.preload(resource, [
-      :accounting_quantity,
-      :onhand_quantity,
-      :unit_of_effort,
-      # :state,
-      :primary_accountable,
-      :current_location,
-      :contained_in,
-      :conforms_to,
-      :image
-    ])
-    |> preload_state()
+    {:ok, resource} = one(id: resource.id, preload: :all)
+    preload_state(resource)
   end
 
   def preload_state(resource) do
@@ -138,15 +112,10 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
 
   # @spec create(User.t(), attrs :: map) :: {:ok, EconomicResource.t()} | {:error, Changeset.t()}
   def create(%User{} = creator, attrs) when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      EconomicResource.create_changeset(creator, attrs)
-    end)
-  end
-
-  def do_create(creator, attrs, changeset_fn) do
     Repo.transact_with(fn ->
-      with {:ok, cs} <- prepare_changeset(attrs, changeset_fn),
-           {:ok, resource} <- Repo.insert(cs),
+      attrs = prepare_attrs(attrs)
+
+      with {:ok, resource} <- Repo.insert(EconomicResource.create_changeset(creator, attrs)),
            {:ok, resource} <- ValueFlows.Util.try_tag_thing(creator, resource, attrs),
            act_attrs = %{verb: "created", is_local: true},
            # FIXME
@@ -164,111 +133,20 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
   # TODO: take the user who is performing the update
   # @spec update(%EconomicResource{}, attrs :: map) :: {:ok, EconomicResource.t()} | {:error, Changeset.t()}
   def update(%EconomicResource{} = resource, attrs) do
-    do_update(resource, attrs, &EconomicResource.update_changeset(&1, attrs))
-  end
-
-  defp do_update(resource, attrs, changeset_fn) do
     Repo.transact_with(fn ->
-      resource = preload_all(resource)
+      attrs = prepare_attrs(attrs)
 
-      with {:ok, cs} <- prepare_changeset(attrs, changeset_fn, resource),
-           {:ok, resource} <- Repo.update(cs),
+      with {:ok, resource} <- Repo.update(EconomicResource.update_changeset(resource, attrs)),
            {:ok, resource} <- ValueFlows.Util.try_tag_thing(nil, resource, attrs),
            :ok <- publish(resource, :updated) do
-        {:ok, resource}
-      end
-    end)
-  end
-
-  defp prepare_changeset(attrs, changeset_fn, resource) do
-    resource
-    |> changeset_fn.()
-    |> changeset_relations(attrs)
-  end
-
-  defp prepare_changeset(attrs, changeset_fn) do
-    changeset_fn.()
-    |> changeset_relations(attrs)
-  end
-
-  defp changeset_relations(cs, attrs) do
-    attrs = parse_measurement_attrs(attrs)
-
-    ValueFlows.Util.handle_changeset_errors(cs, attrs, [
-      &EconomicResource.change_measures/2,
-      &change_primary_accountable/2,
-      &change_state_action/2,
-      &change_current_location/2,
-      &change_conforms_to_resource_spec/2,
-      &change_contained_in_resource/2,
-      &change_unit_of_effort/2
-    ])
-  end
-
-  defp change_primary_accountable(changeset, %{primary_accountable: id}) do
-    with {:ok, pointer} <- Pointers.one(id: id) do
-      # primary_accountable = Pointers.follow!(pointer)
-      EconomicResource.change_primary_accountable(changeset, pointer)
-    end
-  end
-
-  defp change_primary_accountable(changeset, _attrs), do: changeset
-
-  defp change_state_action(changeset, %{state: state_id}) do
-    with {:ok, state} <- Actions.action(state_id) do
-      EconomicResource.change_state_action(changeset, state)
-    end
-  end
-
-  defp change_state_action(changeset, _attrs), do: changeset
-
-  defp change_current_location(changeset, %{current_location: id}) do
-    with {:ok, location} <- Geolocations.one([:default, id: id]) do
-      EconomicResource.change_current_location(changeset, location)
-    end
-  end
-
-  defp change_current_location(changeset, _attrs), do: changeset
-
-  defp change_conforms_to_resource_spec(changeset, %{conforms_to: id}) do
-    with {:ok, resource} <- ResourceSpecifications.one([:default, id: id]) do
-      EconomicResource.change_conforms_to_resource_spec(changeset, resource)
-    end
-  end
-
-  defp change_conforms_to_resource_spec(changeset, _attrs), do: changeset
-
-  defp change_contained_in_resource(changeset, %{contained_in: id}) do
-    with {:ok, resource} <- EconomicResources.one([:default, id: id]) do
-      EconomicResource.change_contained_in_resource(changeset, resource)
-    end
-  end
-
-  defp change_contained_in_resource(changeset, _attrs), do: changeset
-
-  defp change_unit_of_effort(changeset, %{unit_of_effort: id}) do
-    with {:ok, resource} <- Units.one([:default, id: id]) do
-      EconomicResource.change_unit_of_effort(changeset, resource)
-    end
-  end
-
-  defp change_unit_of_effort(changeset, _attrs), do: changeset
-
-  defp parse_measurement_attrs(attrs) do
-    Enum.reduce(attrs, %{}, fn {k, v}, acc ->
-      if is_map(v) and Map.has_key?(v, :has_unit) do
-        v = ValueFlows.Util.map_key_replace(v, :has_unit, :unit_id)
-        # I have no idea why the numerical value isn't auto converted
-        Map.put(acc, k, v)
-      else
-        Map.put(acc, k, v)
+        {:ok, preload_all(resource)}
       end
     end)
   end
 
   def soft_delete(%EconomicResource{} = resource) do
     Repo.transact_with(fn ->
-      with {:ok, resource} <- Common.soft_delete(resource),
+      with {:ok, resource} <- Common.Deletion.soft_delete(resource),
            :ok <- publish(resource, :deleted) do
         {:ok, resource}
       end
@@ -277,18 +155,6 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
 
   defp publish(creator, resource, activity, :created) do
     feeds = [
-      CommonsPub.Feeds.outbox_id(creator),
-      Feeds.instance_outbox_id()
-    ]
-
-    with :ok <- FeedActivities.publish(activity, feeds) do
-      ap_publish("create", resource.id, creator.id)
-    end
-  end
-
-  defp publish(creator, context, resource, activity, :created) do
-    feeds = [
-      context.outbox_id,
       CommonsPub.Feeds.outbox_id(creator),
       Feeds.instance_outbox_id()
     ]
@@ -318,8 +184,6 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
     :ok
   end
 
-  defp ap_publish(_, _, _), do: :ok
-
   def indexing_object_format(obj) do
     # icon = CommonsPub.Uploads.remote_url_from_id(obj.icon_id)
     image = CommonsPub.Uploads.remote_url_from_id(obj.image_id)
@@ -344,5 +208,31 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
     CommonsPub.Search.Indexer.maybe_index_object(object)
 
     :ok
+  end
+
+  defp prepare_attrs(attrs) do
+    attrs
+    |> maybe_put(:primary_accountable_id, attr_get_id(attrs, :primary_accountable))
+    |> maybe_put(:context_id,
+      attrs |> Map.get(:in_scope_of) |> CommonsPub.Common.maybe(&List.first/1)
+    )
+    |> maybe_put(:current_location_id, attr_get_id(attrs, :current_location))
+    |> maybe_put(:conforms_to_id, attr_get_id(attrs, :conforms_to))
+    |> maybe_put(:contained_in_id, attr_get_id(attrs, :contained_in))
+    |> maybe_put(:unit_of_effort_id, attr_get_id(attrs, :unit_of_effort))
+    |> maybe_put(:state_id, attr_get_id(attrs, :state))
+    |> parse_measurement_attrs()
+  end
+
+  defp parse_measurement_attrs(attrs) do
+    Enum.reduce(attrs, %{}, fn {k, v}, acc ->
+      if is_map(v) and Map.has_key?(v, :has_unit) do
+        v = CommonsPub.Common.map_key_replace(v, :has_unit, :unit_id)
+        # I have no idea why the numerical value isn't auto converted
+        Map.put(acc, k, v)
+      else
+        Map.put(acc, k, v)
+      end
+    end)
   end
 end

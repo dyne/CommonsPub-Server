@@ -39,7 +39,7 @@ defmodule CommonsPub.Web.SearchLive do
 
     search = CommonsPub.Search.search(q, nil, ["index_type"], facet_filters)
 
-    IO.inspect(search)
+    IO.inspect(search: search)
 
     hits =
       if(Map.has_key?(search, "hits") and length(search["hits"])) do

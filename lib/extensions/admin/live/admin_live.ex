@@ -12,7 +12,7 @@ defmodule CommonsPub.Web.AdminLive do
   }
 
   def mount(params, session, socket) do
-    IO.inspect(session)
+    # IO.inspect(session)
     socket = init_assigns(params, session, socket)
 
     {:ok,

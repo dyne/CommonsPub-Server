@@ -22,6 +22,8 @@ RUN apk add --no-cache git \
 RUN apk add --no-cache cmake make gcc libc-dev
 
 EXPOSE 4000/tcp
+EXPOSE 4001/tcp
+EXPOSE 4002/tcp
 EXPOSE 4004/tcp
 
 # ENTRYPOINT ["iex", "-S", "mix", "phx.server"]

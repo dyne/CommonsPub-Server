@@ -13,11 +13,15 @@ defmodule CommonsPub.Web do
     quote do
       use Phoenix.Controller, namespace: CommonsPub.Web
       import Plug.Conn
-      import CommonsPub.Web.{Gettext, Router.Helpers}
+      import CommonsPub.Web.Gettext
+
       # Liveview support
       import Phoenix.LiveView.Controller
+
+      import CommonsPub.Web.Router.Helpers
       alias CommonsPub.Web.Router.Helpers, as: Routes
       alias ActivityPubWeb.Router.Helpers, as: APRoutes
+
       alias CommonsPub.Web.Plugs.ScrubParams
 
       action_fallback(CommonsPub.Web.FallbackController)
@@ -42,8 +46,8 @@ defmodule CommonsPub.Web do
 
       # use Phoenix.HTML
 
-      # alias CommonsPub.Web.Router.Helpers, as: Routes
-      # alias ActivityPubWeb.Router.Helpers, as: APRoutes
+      alias CommonsPub.Web.Router.Helpers, as: Routes
+      alias ActivityPubWeb.Router.Helpers, as: APRoutes
 
       # alias CommonsPub.Accounts.User
       # Include shared imports and aliases for views

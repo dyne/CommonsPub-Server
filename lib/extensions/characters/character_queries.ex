@@ -4,6 +4,7 @@ defmodule CommonsPub.Characters.Queries do
   # alias CommonsPub.Characters.Character
   alias CommonsPub.Follows.{Follow, FollowerCount}
   alias CommonsPub.Users.User
+
   import CommonsPub.Common.Query, only: [match_admin: 0]
   import Ecto.Query
 
@@ -73,7 +74,7 @@ defmodule CommonsPub.Characters.Queries do
   ## by preset
 
   def filter(q, :default) do
-    filter(q, [:deleted])
+    filter(q, deleted: false)
   end
 
   ## by join
@@ -97,9 +98,14 @@ defmodule CommonsPub.Characters.Queries do
 
   ## by status
 
-  def filter(q, :deleted) do
-    where(q, [character: o], is_nil(o.deleted_at))
+  def filter(q, {:select, :delete}) do
+    select(q, [character: c], %{id: c.id, inbox_id: c.inbox_id, outbox_id: c.outbox_id})
   end
+
+  def filter(q, {:deleted, false}), do: where(q, [character: c], is_nil(c.deleted_at))
+  def filter(q, {:deleted, true}), do: where(q, [character: c], not is_nil(c.deleted_at))
+  def filter(q, {:deleted, nil}), do: where(q, [character: c], is_nil(c.deleted_at))
+  def filter(q, {:deleted, :not_nil}), do: where(q, [character: c], not is_nil(c.deleted_at))
 
   def filter(q, :disabled) do
     where(q, [character: o], is_nil(o.disabled_at))
@@ -130,6 +136,10 @@ defmodule CommonsPub.Characters.Queries do
   end
 
   def filter(q, {:id, id}) when is_binary(id) do
+    where(q, [character: c], c.id == ^id)
+  end
+
+  def filter(q, {:id, %{id: id}}) when is_binary(id) do
     where(q, [character: c], c.id == ^id)
   end
 

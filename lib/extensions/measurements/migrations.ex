@@ -37,7 +37,5 @@ defmodule Measurement.Migrations do
 
       timestamps(inserted_at: false, type: :utc_datetime_usec)
     end
-
-    create(unique_index(measure_table(), [:unit_id, :has_numerical_value]))
   end
 end

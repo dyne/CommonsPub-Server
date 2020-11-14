@@ -85,6 +85,7 @@ defmodule Measurement.Measure.Queries do
 
   ## by field values
 
+
   def filter(q, {:id, id}) when is_binary(id) do
     where(q, [measure: c], c.id == ^id)
   end
@@ -118,30 +119,6 @@ defmodule Measurement.Measure.Queries do
 
   def filter(q, {:count, key}) when is_atom(key) do
     select(q, [measure: c], {field(c, ^key), count(c.id)})
-  end
-
-  # pagination
-
-  def filter(q, {:limit, limit}) do
-    limit(q, ^limit)
-  end
-
-  def filter(q, {:paginate_id, %{after: a, limit: limit}}) do
-    limit = limit + 2
-
-    q
-    |> where([measure: c], c.id >= ^a)
-    |> limit(^limit)
-  end
-
-  def filter(q, {:paginate_id, %{before: b, limit: limit}}) do
-    q
-    |> where([measure: c], c.id <= ^b)
-    |> filter(limit: limit + 2)
-  end
-
-  def filter(q, {:paginate_id, %{limit: limit}}) do
-    filter(q, limit: limit + 1)
   end
 
   # defp page(q, %{limit: limit}, _), do: filter(q, limit: limit + 1)

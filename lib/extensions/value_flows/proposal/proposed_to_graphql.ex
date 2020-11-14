@@ -20,12 +20,31 @@ defmodule ValueFlows.Proposal.ProposedToGraphQL do
     Proposals.one_proposed_to([:default, id: id])
   end
 
-  def published_to_edge(%{id: proposal_id}, _, _info) do
-    Proposals.many_proposed_to([:default, proposed_id: proposal_id])
+  def published_to_edge(%{id: id}, _, _info) when not is_nil(id) do
+    Proposals.many_proposed_to([:default, proposed_id: id])
   end
   def published_to_edge(_, _, _info) do
     {:ok, nil}
   end
+
+  def proposed_to_agent(%{proposed_to_id: id}, _, _info) when not is_nil(id) do
+    {:ok, ValueFlows.Agent.Agents.agent(id, nil)}
+  end
+  def proposed_to_agent(_, _, _info) do
+    {:ok, nil}
+  end
+
+
+  def fetch_proposed_edge(%{proposed_id: id} = thing, _, _)
+      when is_binary(id) do
+    thing = Repo.preload(thing, :proposed)
+    {:ok, Map.get(thing, :proposed)}
+  end
+
+  def fetch_proposed_edge(_, _, _) do
+    {:ok, nil}
+  end
+
 
   def propose_to(%{proposed_to: agent_id, proposed: proposed_id}, info) do
     with {:ok, _} <- GraphQL.current_user_or_not_logged_in(info),

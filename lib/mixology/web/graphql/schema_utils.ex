@@ -13,7 +13,7 @@ defmodule CommonsPub.Web.GraphQL.SchemaUtils do
     schemas = CommonsPub.Meta.TableService.list_pointable_schemas()
 
     Enum.reduce(schemas, [], fn schema, acc ->
-      if Code.ensure_loaded?(schema) and function_exported?(schema, :type, 0) and
+      if CommonsPub.Config.module_enabled?(schema) and function_exported?(schema, :type, 0) and
            !is_nil(apply(schema, :type, [])) do
         Enum.concat(acc, [apply(schema, :type, [])])
       else

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule CommonsPub.Follows do
-  alias CommonsPub.{Activities, Common, GraphQL, Repo}
+  alias CommonsPub.{Activities, Common, Repo}
   alias CommonsPub.Feeds.{FeedActivities, FeedSubscriptions}
 
   alias CommonsPub.Follows.{
@@ -29,8 +29,8 @@ defmodule CommonsPub.Follows do
     create(follower, CommonsPub.Meta.Pointers.follow!(followed), fields, opts)
   end
 
-  def create(%User{} = follower, %{character: %{outbox_id: _} = followed}, fields, _opts) do
-    create(follower, followed, fields, _opts)
+  def create(%User{} = follower, %{character: %{outbox_id: _} = followed}, fields, opts) do
+    create(follower, followed, fields, opts)
   end
 
   def create(%User{} = follower, %_struct{outbox_id: _} = followed, fields, _opts) do
@@ -84,6 +84,82 @@ defmodule CommonsPub.Follows do
 
   defp ap_publish(_, _), do: :ok
 
+  def ap_publish_activity("create", %Follow{} = follow) do
+    ## FIXME: this is currently implemented in a spec non-conforming way, AP follows are supposed to be handshakes
+    ## that are only reflected in the host database upon receiving an Accept activity in response. in this case
+    ## the follow activity is created based on a Follow object that's already in MN database, which is wrong.
+    ## For now we just delete the folow and return an error if the followed account is private.
+    follow = CommonsPub.Repo.preload(follow, creator: :character, context: [:table])
+
+    with {:ok, follower} <-
+           ActivityPub.Actor.get_cached_by_username(follow.creator.character.preferred_username),
+         followed = CommonsPub.Meta.Pointers.follow!(follow.context),
+         followed = CommonsPub.Repo.preload(followed, :character),
+         {:ok, followed} <-
+           ActivityPub.Actor.get_or_fetch_by_username(followed.character.preferred_username) do
+      if followed.data["manuallyApprovesFollowers"] do
+        CommonsPub.Follows.soft_delete(follow.creator, follow)
+        {:error, "account is private"}
+      else
+        # FIXME: insert pointer in AP database, insert cannonical URL in MN database
+        ActivityPub.follow(follower, followed)
+      end
+    else
+      e -> {:error, e}
+    end
+  end
+
+  def ap_publish_activity("delete", %Follow{} = follow) do
+    follow = CommonsPub.Repo.preload(follow, creator: :character, context: [])
+
+    with {:ok, follower} <-
+           ActivityPub.Actor.get_cached_by_username(follow.creator.character.preferred_username),
+         followed = CommonsPub.Meta.Pointers.follow!(follow.context),
+         {:ok, followed} <-
+           ActivityPub.Actor.get_or_fetch_by_username(followed.character.preferred_username) do
+      ActivityPub.unfollow(follower, followed)
+    else
+      e -> {:error, e}
+    end
+  end
+
+  # Activity: Follow
+  def ap_receive_activity(%{data: %{"type" => "Follow"}} = activity, object) do
+    with {:ok, follower} <-
+           CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(activity.data["actor"]),
+         {:ok, followed} <-
+           CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(object),
+         {:ok, _} <-
+           CommonsPub.Follows.create(follower, followed, %{
+             is_public: true,
+             is_muted: false,
+             is_local: false,
+             canonical_url: activity.data["id"]
+           }) do
+      :ok
+    else
+      {:error, e} -> {:error, e}
+    end
+  end
+
+  # Unfollow (Activity: Undo, Object: Follow)
+  def ap_receive_activity(
+        %{data: %{"type" => "Undo"}} = activity,
+        %{data:  %{"type" => "Follow"}} = object
+      ) do
+    with {:ok, follower} <-
+           CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(object.data["actor"]),
+         {:ok, followed} <-
+           CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(object.data["object"]),
+         {:ok, follow} <-
+           CommonsPub.Follows.one(deleted: false, creator: follower.id, context: followed.id),
+         {:ok, _} <- CommonsPub.Follows.soft_delete(follower, follow) do
+      :ok
+    else
+      {:error, e} -> {:error, e}
+    end
+  end
+
   @spec update(User.t(), Follow.t(), map) :: {:ok, Follow.t()} | {:error, Changeset.t()}
   def update(%User{}, %Follow{} = follow, fields) do
     Repo.transact_with(fn ->
@@ -101,7 +177,7 @@ defmodule CommonsPub.Follows do
   @spec soft_delete(User.t(), Follow.t()) :: {:ok, Follow.t()} | {:error, Changeset.t()}
   def soft_delete(%User{} = user, %Follow{} = follow) do
     Repo.transact_with(fn ->
-      with {:ok, follow} <- Common.soft_delete(follow),
+      with {:ok, follow} <- Common.Deletion.soft_delete(follow),
            :ok <- chase_delete(user, [follow.id], [follow.context_id]),
            :ok <- ap_publish("delete", follow) do
         {:ok, follow}
@@ -158,7 +234,7 @@ defmodule CommonsPub.Follows do
   # defp unsubscribe(%{creator_id: creator_id, is_local: true, muted_at: nil}=follow) do
   #   context = CommonsPub.Meta.Pointers.follow!(Repo.preload(follow, :context).context)
   #   case FeedSubscriptions.one(deleted: false, subscriber: creator_id, feed: context.outbox_id) do
-  #     {:ok, sub} -> Common.soft_delete(sub)
+  #     {:ok, sub} -> Common.Deletion.soft_delete(sub)
   #     _ -> {:ok, []} # shouldn't be here
   #   end
   # end

@@ -20,28 +20,27 @@ alias CommonsPub.{
 alias CommonsPub.Blocks.Block
 alias CommonsPub.Collections.Collection
 alias CommonsPub.Communities.Community
-alias CommonsPub.Feeds.{FeedActivities, FeedSubscriptions}
 alias CommonsPub.Flags.Flag
 alias CommonsPub.Likes.Like
 alias CommonsPub.Resources.Resource
 alias CommonsPub.Threads.{Comment, Thread}
 alias CommonsPub.Users.User
-alias CommonsPub.Workers.GarbageCollector
+
+alias CommonsPub.Feeds.{FeedActivities, FeedSubscriptions}
 
 alias Measurement.Unit.Units
 alias CommonsPub.Tag.Taggable
 
+alias CommonsPub.Workers.GarbageCollector
+
 fallback_env = fn a, b, c -> System.get_env(a) || System.get_env(b) || c end
 
-desc = System.get_env("INSTANCE_DESCRIPTION", "Local development instance")
+desc = System.get_env("INSTANCE_DESCRIPTION", "An instance of CommonsPub, a federated app ecosystem for open and cooperative networks")
 hostname = System.get_env("HOSTNAME", "localhost")
 base_url = System.get_env("BASE_URL", "http://localhost:4000")
+signing_salt = System.get_env("SIGNING_SALT", "CqAoopA2")
 
-# LiveView support: https://hexdocs.pm/phoenix_live_view/installation.html
-config :commons_pub, CommonsPub.Web.Endpoint,
-  live_view: [
-    signing_salt: "SECRET_SALT"
-  ]
+
 
 # stuff you might need to change to be viable
 
@@ -55,55 +54,130 @@ config :commons_pub, CommonsPub.Web.Gettext, default_locale: "en", locales: ~w(e
 
 # stuff you might want to change for your use case
 
-config :commons_pub, GarbageCollector,
-  # Contexts which require a mark phase, in execution order
-  mark: [Uploads],
-  # Contexts which need to perform maintainance, in execution order
-  sweep: [
-    Uploads,
-    FeedActivities,
-    FeedSubscriptions,
-    Feeds,
-    Features,
-    Resources,
-    Collections,
-    Communities,
-    Users,
-    CommonsPub.Characters
-  ],
-  # We will not sweep content newer than this
-  # one week
-  grace: 302_400
+# LiveView support: https://hexdocs.pm/phoenix_live_view/installation.html
+config :commons_pub, :signing_salt, signing_salt
+config :commons_pub, CommonsPub.Web.Endpoint,
+  live_view: [
+    signing_salt: signing_salt
+  ]
 
-contexts_agents = [
+types_agents = [
   User,
   Organisation
 ]
 
-contexts_characters = [
-  User,
-  Collection,
-  Community,
-  Geolocation,
-  Organisation,
-  CommonsPub.Tag.Category
+types_characters =
+  types_agents ++
+    [
+      Community,
+      Collection,
+      Geolocation,
+      CommonsPub.Tag.Category
+    ]
+
+types_inventory = [
+  CommonsPub.Threads.Thread,
+  CommonsPub.Threads.Comment,
+  CommonsPub.Resources.Resource,
+  Measurement.Unit,
+  CommonsPub.Tag.Category,
+  ValueFlows.Planning.Intent,
+  ValueFlows.Proposal,
+  ValueFlows.Observation.EconomicEvent,
+  ValueFlows.Observation.EconomicResource,
+  ValueFlows.Observation.Process,
+  ValueFlows.Knowledge.ProcessSpecification,
+  ValueFlows.Knowledge.ResourceSpecification
 ]
 
-contexts_all =
-  contexts_characters ++
-    [
-      Thread,
-      Comment,
-      Resource,
-      Like,
-      ValueFlows.Planning.Intent
-    ]
+types_actions = [
+  CommonsPub.Likes.Like,
+  CommonsPub.Blocks.Block,
+  CommonsPub.Flags.Flag,
+  CommonsPub.Follows.Follow,
+  Features.Feature
+]
+
+types_others = [
+  Instance,
+  Uploads.Upload,
+  Measurement.Measure,
+  CommonsPub.Tag.Taggable,
+  CommonsPub.Activities.Activity,
+  CommonsPub.Feeds.Feed,
+  CommonsPub.Peers.Peer,
+  CommonsPub.Access.RegisterEmailDomainAccess,
+  CommonsPub.Access.RegisterEmailAccess
+]
+
+types_all_contexts = types_characters ++ types_inventory
+types_all = types_all_contexts ++ types_actions ++ types_others
+
+# configure which modules will receive which ActivityPub activities/objects
+
+actor_modules = %{
+  "Person" => CommonsPub.Users,
+  "Group" => CommonsPub.Communities,
+  "MN:Collection" => CommonsPub.Collections,
+  "Organization" => CommonsPub.Organisations,
+  "Application" => CommonsPub.Characters,
+  "Service" => CommonsPub.Characters,
+  fallback: CommonsPub.Characters
+}
+
+activity_modules = %{
+  "Follow" => CommonsPub.Follows,
+  "Like" => CommonsPub.Likes,
+  "Flag" => CommonsPub.Flags,
+  "Block" => CommonsPub.Blocks,
+  "Delete" => CommonsPub.Common.Deletion,
+  fallback: CommonsPub.Activities
+}
+
+inventory_modules = %{
+  "Note" => CommonsPub.Threads.Comments,
+  "Article" => CommonsPub.Threads.Comments,
+  "Question" => CommonsPub.Threads.Comments,
+  "Answer" => CommonsPub.Threads.Comments,
+  "Document" => CommonsPub.Resources,
+  "Page" => CommonsPub.Resources,
+  "Video" => CommonsPub.Resources,
+  fallback: CommonsPub.Threads.Comments
+}
+
+object_modules =
+  Map.merge(inventory_modules, %{
+    "Follow" => CommonsPub.Follows,
+    "Like" => CommonsPub.Likes,
+    "Flag" => CommonsPub.Flags,
+    "Block" => CommonsPub.Blocks
+  })
+
+actor_types = Map.keys(actor_modules)
+activity_types = Map.keys(activity_modules) ++ ["Create", "Update", "Accept", "Announce", "Undo"]
+inventory_types = Map.keys(inventory_modules)
+object_types = Map.keys(object_modules)
+all_types = actor_types ++ activity_types ++ inventory_types ++ object_types
+
+config :commons_pub, CommonsPub.ActivityPub.Adapter,
+  actor_modules: actor_modules,
+  actor_types: actor_types,
+  activity_modules: activity_modules,
+  activity_types: activity_types,
+  object_modules: object_modules,
+  inventory_types: inventory_types,
+  object_types: object_types,
+  all_types: all_types
 
 config :commons_pub, Instance,
   hostname: hostname,
   description: desc,
   # what to show or exclude in Instance Timeline
-  default_outbox_query_contexts: List.delete(contexts_all, Like)
+  default_outbox_query_contexts: List.delete(types_all_contexts, Like),
+  types_characters: types_characters,
+  types_inventory: types_inventory,
+  types_actions: types_actions,
+  types_all: types_all
 
 # config :commons_pub, User, # extend schema with Flexto
 #    has_many: [
@@ -112,46 +186,46 @@ config :commons_pub, Instance,
 
 config :commons_pub, Users,
   public_registration: false,
-  default_outbox_query_contexts: contexts_all,
-  default_inbox_query_contexts: contexts_all
+  default_outbox_query_contexts: types_all_contexts,
+  default_inbox_query_contexts: types_all_contexts
 
 config :commons_pub, Communities,
-  valid_contexts: contexts_characters,
-  default_outbox_query_contexts: contexts_all,
-  default_inbox_query_contexts: contexts_all
+  valid_contexts: types_characters,
+  default_outbox_query_contexts: types_all_contexts,
+  default_inbox_query_contexts: types_all_contexts
 
 config :commons_pub, Collections,
-  valid_contexts: contexts_characters,
-  default_outbox_query_contexts: contexts_all,
-  default_inbox_query_contexts: contexts_all
+  valid_contexts: types_characters,
+  default_outbox_query_contexts: types_all_contexts,
+  default_inbox_query_contexts: types_all_contexts
 
-config :commons_pub, Organisation, valid_contexts: contexts_characters
+config :commons_pub, Organisation, valid_contexts: types_characters
 
 config :commons_pub, CommonsPub.Characters,
-  valid_contexts: contexts_characters,
-  default_outbox_query_contexts: contexts_all
+  valid_contexts: types_characters,
+  default_outbox_query_contexts: types_all_contexts
 
 config :commons_pub, Feeds,
-  valid_contexts: contexts_characters,
-  default_query_contexts: contexts_all
+  valid_contexts: types_characters,
+  default_query_contexts: types_all_contexts
 
-config :commons_pub, Blocks, valid_contexts: contexts_characters
+config :commons_pub, Blocks, valid_contexts: types_characters
 
-config :commons_pub, Follows, valid_contexts: contexts_characters
+config :commons_pub, Follows, valid_contexts: types_characters
 
-config :commons_pub, Features, valid_contexts: contexts_all
+config :commons_pub, Features, valid_contexts: types_all_contexts
 
-config :commons_pub, Flags, valid_contexts: contexts_all
+config :commons_pub, Flags, valid_contexts: types_all_contexts
 
-config :commons_pub, Likes, valid_contexts: contexts_all
+config :commons_pub, Likes, valid_contexts: types_all_contexts
 
-config :commons_pub, Threads, valid_contexts: [ValueFlows.Proposal] ++ contexts_all
+config :commons_pub, Threads, valid_contexts: types_all_contexts
 
-config :commons_pub, Resources, valid_contexts: contexts_all
+config :commons_pub, Resources, valid_contexts: types_all_contexts
 
-config :commons_pub, Units, valid_contexts: contexts_all
+config :commons_pub, Units, valid_contexts: types_all_contexts
 
-config :commons_pub, ValueFlows.Proposal.Proposals, valid_agent_contexts: contexts_agents
+config :commons_pub, ValueFlows.Proposal.Proposals, valid_agent_contexts: types_agents
 
 image_media_types = ~w(image/png image/jpeg image/svg+xml image/gif)
 
@@ -192,6 +266,26 @@ config :commons_pub, Uploads,
   path: uploads_dir,
   base_url: base_url <> uploads_dir <> "/"
 
+config :commons_pub, GarbageCollector,
+  # Contexts which require a mark phase, in execution order
+  mark: [Uploads],
+  # Contexts which need to perform maintainance, in execution order
+  sweep: [
+    Uploads,
+    FeedActivities,
+    FeedSubscriptions,
+    Feeds,
+    Features,
+    Resources,
+    Collections,
+    Communities,
+    Users,
+    CommonsPub.Characters
+  ],
+  # We will not sweep content newer than this
+  # one week
+  grace: 302_400
+
 # before compilation, replace this with the email deliver service adapter you want to use: https://github.com/thoughtbot/bamboo#available-adapters
 # api_key: System.get_env("MAIL_KEY"), # use API key from runtime environment variable (make sure to set it on the server or CI config), and fallback to build-time env variable
 # domain: System.get_env("MAIL_DOMAIN"), # use sending domain from runtime env, and fallback to build-time env variable
@@ -227,15 +321,19 @@ config :commons_pub, CommonsPub.MediaProxy,
   impl: CommonsPub.DirectHTTPMediaProxy,
   path: "/media/"
 
-### Standin data for values you'll have to provide in the ENV in prod
+fallback_secret_key_base = "aK4Abxf29xU9TTDKre9coZPUgevcVCFQJe/5xP/7Lt4BEif6idBIbjupVbOrbKxl"
 
+### Standin data for values you'll have to provide in the ENV in prod
 config :commons_pub, CommonsPub.Web.Endpoint,
   url: [host: "localhost"],
   protocol: "https",
-  secret_key_base: "aK4Abxf29xU9TTDKre9coZPUgevcVCFQJe/5xP/7Lt4BEif6idBIbjupVbOrbKxl",
+  secret_key_base:  System.get_env("SECRET_KEY_BASE", fallback_secret_key_base),
   render_errors: [view: CommonsPub.Web.ErrorView, accepts: ["json", "activity+json"]],
   pubsub_server: CommonsPub.PubSub,
   secure_cookie_flag: true
+
+# config :activity_pub, ActivityPubWeb.Endpoint,
+#     secret_key_base:  System.get_env("SECRET_KEY_BASE", fallback_secret_key_base)
 
 version =
   with {version, 0} <- System.cmd("git", ["rev-parse", "HEAD"]) do
@@ -244,17 +342,6 @@ version =
     _ -> "CommonsPub #{Mix.Project.config()[:version]} dev"
   end
 
-config :activity_pub, :instance,
-  hostname: "localhost",
-  version: version,
-  name: "CommonsPub",
-  email: "root@localhost",
-  description:
-    "An instance of CommonsPub, a federated app ecosystem for open and cooperative networks",
-  federation_publisher_modules: [ActivityPubWeb.Publisher],
-  federation_reachability_timeout_days: 7,
-  federating: true,
-  rewrite_policy: []
 
 ### Stuff you probably won't want to change
 
@@ -356,7 +443,6 @@ mail_smtp = fn ->
                       mail_blackhole.("MAIL_FROM")
 
                     from ->
-
                       IO.puts("NOTE: Transactional emails will be sent through SMTP.")
 
                       config :commons_pub, CommonsPub.Mail.MailService,
@@ -390,6 +476,25 @@ config :argon2_elixir,
   # argon2id, see https://hexdocs.pm/argon2_elixir/Argon2.Stats.html
   argon2_type: 2
 
+config :activity_pub, :instance,
+  hostname: hostname,
+  version: version,
+  name: "CommonsPub",
+  email: System.get_env("MAIL_FROM", "root@localhost"),
+  description: desc,
+  federation_publisher_modules: [ActivityPubWeb.Publisher],
+  federation_reachability_timeout_days: 7,
+  federating: true,
+  rewrite_policy: [],
+  supported_activity_types: activity_types,
+  supported_actor_types: actor_types,
+  supported_object_types: inventory_types
+
+config :activity_pub, :repo, CommonsPub.Repo
+config :activity_pub, adapter: CommonsPub.ActivityPub.Adapter
+config :activity_pub, :endpoint, CommonsPub.Web.Endpoint
+config :nodeinfo, adapter: CommonsPub.NodeinfoAdapter
+
 # Configures http settings, upstream proxy etc.
 config :activity_pub, :http,
   proxy_url: nil,
@@ -412,23 +517,37 @@ config :tesla, adapter: Tesla.Adapter.Hackney
 
 config :http_signatures, adapter: ActivityPub.Signature
 
-config :activity_pub, adapter: CommonsPub.ActivityPub.Adapter
-
-config :nodeinfo, adapter: CommonsPub.NodeinfoAdapter
-
 config :floki, :html_parser, Floki.HTMLParser.Html5ever
 
 config :sentry,
   enable_source_code_context: true,
   root_source_code_path: File.cwd!()
 
-config :commons_pub, :env, Mix.env()
+config :cortex,
+  clear_before_running_tests: true,
+  disabled: {:system, "CI_RUN", false}
+
+env = Mix.env()
+config :commons_pub, :env, env
+IO.puts("Compiling with env #{env}")
 
 config :pointers, Pointers.Pointer,
   source: "pointers_pointer",
+  belongs_to: [
+    character: {
+      CommonsPub.Characters.Character,
+      foreign_key: :id, define_field: false
+    }
+  ],
+  belongs_to: [
+    profile: {
+      CommonsPub.Profiles.Profile,
+      foreign_key: :id, define_field: false
+    }
+  ],
   many_to_many: [
     tags: {
-      # if(Code.ensure_loaded?(Taggable), do: Taggable, else: :taggable),
+      # if(CommonsPub.Config.module_enabled?(Taggable), do: Taggable, else: :taggable),
       Taggable,
       join_through: "tags_things",
       unique: true,
@@ -443,8 +562,6 @@ config :commons_pub, :ux,
   # prosemirror or ck5 as content editor:
   # editor: "prosemirror"
   editor: "ck5"
-
-config :activity_pub, :repo, CommonsPub.Repo
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

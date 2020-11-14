@@ -16,15 +16,16 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
   describe "one" do
     test "fetches an existing economic event by ID" do
       user = fake_user!()
+      unit = fake_unit!(user)
 
       event =
         fake_economic_event!(user, %{
           input_of: fake_process!(user).id,
           output_of: fake_process!(user).id,
           resource_conforms_to: fake_resource_specification!(user).id,
-          to_resource_inventoried_as: fake_economic_resource!(user).id,
-          resource_inventoried_as: fake_economic_resource!(user).id
-        })
+          to_resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id,
+          resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id
+        }, unit)
 
       assert {:ok, fetched} = EconomicEvents.one(id: event.id)
       assert_economic_event(fetched)
@@ -37,46 +38,97 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
     test "Return the process to which it is an input" do
       user = fake_user!()
       process = fake_process!(user)
-      event = fake_economic_event!(user, %{
-        input_of: process.id,
-        action: "consume"
-      })
+
+      event =
+        fake_economic_event!(user, %{
+          input_of: process.id,
+          action: "consume"
+        })
+
       assert {:ok, [tracked_process]} = EconomicEvents.track(event)
       assert process.id == tracked_process.id
     end
 
     test "return an economic Resource which it affected as the output of a process" do
       user = fake_user!()
-      resource = fake_economic_resource!(user)
-      another_resource = fake_economic_resource!(user)
+      unit = fake_unit!(user)
+
+      resource = fake_economic_resource!(user, %{}, unit)
+      another_resource = fake_economic_resource!(user, %{}, unit)
+
       process = fake_process!(user)
-      event = fake_economic_event!(user, %{
-        output_of: process.id,
-        action: "produce"
-      })
-      event_a = fake_economic_event!(user, %{
-        output_of: process.id,
-        action: "produce",
-        resource_inventoried_as: resource.id
-      })
-      event_b = fake_economic_event!(user, %{
-        output_of: process.id,
-        action: "produce",
-        resource_inventoried_as: another_resource.id
-      })
+
+      event =
+        fake_economic_event!(
+          user,
+          %{
+            output_of: process.id,
+            action: "produce"
+          },
+          unit
+        )
+
+      event_a =
+        fake_economic_event!(
+          user,
+          %{
+            output_of: process.id,
+            action: "produce",
+            resource_inventoried_as: resource.id
+          },
+          unit
+        )
+
+      event_b =
+        fake_economic_event!(
+          user,
+          %{
+            output_of: process.id,
+            action: "produce",
+            resource_inventoried_as: another_resource.id
+          },
+          unit
+        )
+
       assert {:ok, resources} = EconomicEvents.track(event)
-      assert Enum.map(resources, &(&1.id)) == [resource.id, another_resource.id]
+      assert Enum.map(resources, & &1.id) == [resource.id, another_resource.id]
     end
 
     test "if it is a transfer or move event, the EconomicResource labelled toResourceInventoriedAs" do
       user = fake_user!()
-      resource = fake_economic_resource!(user)
-      event = fake_economic_event!(user, %{
-        action: "transfer",
-        to_resource_inventoried_as: resource.id,
-        provider: user.id,
-        receiver: user.id
-      })
+      unit = fake_unit!(user)
+
+      resource = fake_economic_resource!(user, %{}, unit)
+
+      event =
+        fake_economic_event!(user, %{
+          action: "transfer",
+          to_resource_inventoried_as: resource.id,
+          provider: user.id,
+          receiver: user.id
+        }, unit)
+
+      assert {:ok, [tracked_resource]} = EconomicEvents.track(event)
+      assert resource.id == tracked_resource.id
+    end
+
+    test "if it is a transfer or move event part of a process, the distinct EconomicResource labelled toResourceInventoriedAs" do
+      user = fake_user!()
+      unit = fake_unit!(user)
+
+      resource = fake_economic_resource!(user, %{}, unit)
+      process = fake_process!(user)
+
+      event =
+        fake_economic_event!(user, %{
+          action: "transfer",
+          output_of: process.id,
+          resource_inventoried_as: resource.id,
+          # to_resource_inventoried_as: resource.id,
+          provider: user.id,
+          receiver: user.id
+        }, unit)
+
       assert {:ok, [tracked_resource]} = EconomicEvents.track(event)
       assert resource.id == tracked_resource.id
     end
@@ -86,10 +138,13 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
     test "Return the process to which it is an output" do
       user = fake_user!()
       process = fake_process!(user)
-      event = fake_economic_event!(user, %{
-        output_of: process.id,
-        action: "produce"
-      })
+
+      event =
+        fake_economic_event!(user, %{
+          output_of: process.id,
+          action: "produce"
+        })
+
       assert {:ok, [traced_process]} = EconomicEvents.trace(event)
 
       assert process.id == traced_process.id
@@ -100,34 +155,50 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
       resource = fake_economic_resource!(user)
       another_resource = fake_economic_resource!(user)
       process = fake_process!(user)
-      event = fake_economic_event!(user, %{
-        input_of: process.id,
-        action: "consume"
-      })
-      event_a = fake_economic_event!(user, %{
-        input_of: process.id,
-        action: "use",
-        resource_inventoried_as: resource.id
-      })
-      event_b = fake_economic_event!(user, %{
-        input_of: process.id,
-        action: "cite",
-        resource_inventoried_as: another_resource.id
-      })
+
+      event =
+        fake_economic_event!(user, %{
+          input_of: process.id,
+          action: "consume"
+        })
+
+      event_a =
+        fake_economic_event!(user, %{
+          input_of: process.id,
+          action: "use",
+          resource_inventoried_as: resource.id
+        })
+
+      event_b =
+        fake_economic_event!(user, %{
+          input_of: process.id,
+          action: "cite",
+          resource_inventoried_as: another_resource.id
+        })
+
       assert {:ok, resources} = EconomicEvents.trace(event)
-      assert Enum.map(resources, &(&1.id)) == [resource.id, another_resource.id]
+      assert Enum.map(resources, & &1.id) == [resource.id, another_resource.id]
     end
 
     test "if it is a transfer or move event, then the previous
           EconomicResource is the resourceInventoriedAs" do
       user = fake_user!()
-      resource = fake_economic_resource!(user)
-      event = fake_economic_event!(user, %{
-        action: "transfer",
-        resource_inventoried_as: resource.id,
-        provider: user.id,
-        receiver: user.id
-      })
+      unit = fake_unit!(user)
+
+      resource = fake_economic_resource!(user, %{}, unit)
+
+      event =
+        fake_economic_event!(
+          user,
+          %{
+            action: "transfer",
+            resource_inventoried_as: resource.id,
+            provider: user.id,
+            receiver: user.id
+          },
+          unit
+        )
+
       assert {:ok, [traced_resource]} = EconomicEvents.trace(event)
       assert resource.id == traced_resource.id
     end
@@ -136,11 +207,12 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
   describe "create" do
     test "can create an economic event" do
       user = fake_user!()
-      provider = fake_user!()
-      receiver = fake_user!()
+      provider = fake_agent!()
+      receiver = fake_agent!()
       action = action()
 
-      assert {:ok, event} = EconomicEvents.create(
+      assert {:ok, event} =
+               EconomicEvents.create(
                  user,
                  economic_event(%{
                    provider: provider.id,
@@ -200,6 +272,7 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
 
     test "can create an economic event with resource_inventoried_as" do
       user = fake_user!()
+
       attrs = %{
         resource_inventoried_as: fake_economic_resource!(user).id
       }
@@ -317,13 +390,13 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
       user = fake_user!()
       economic_event = fake_economic_event!(user)
 
-      assert {:ok, updated} = EconomicEvents.update(economic_event, economic_event(%{note: "test"}))
+      assert {:ok, updated} =
+               EconomicEvents.update(economic_event, economic_event(%{note: "test"}))
+
       assert_economic_event(updated)
       assert economic_event != updated
     end
-
   end
-
 
   describe "soft delete" do
     test "delete an existing event" do
@@ -334,8 +407,5 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
       assert {:ok, spec} = EconomicEvents.soft_delete(spec)
       assert spec.deleted_at
     end
-
   end
-
-
 end

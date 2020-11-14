@@ -7,7 +7,7 @@ defmodule ValueFlows.Planning.Intent.Migrations do
   alias ValueFlows.Knowledge.ResourceSpecification
   alias ValueFlows.Observation.EconomicResource
   alias ValueFlows.Observation.Process
-  alias ValueFlows.Proposal
+  # alias ValueFlows.Proposal
 
   defp intent_table(), do: ValueFlows.Planning.Intent.__schema__(:source)
 

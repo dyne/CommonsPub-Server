@@ -6,7 +6,7 @@ defmodule Measurement.Measure.Measures do
   }
 
   alias CommonsPub.GraphQL.{Fields, Page}
-  alias CommonsPub.Common.Contexts
+  alias CommonsPub.Contexts
   alias Measurement.{Measure, Unit}
   alias Measurement.Measure.Queries
   # alias CommonsPub.Communities.Community
@@ -143,7 +143,7 @@ defmodule Measurement.Measure.Measures do
 
   # def soft_delete(%Measure{} = measure) do
   #   Repo.transact_with(fn ->
-  #     with {:ok, measure} <- Common.soft_delete(measure),
+  #     with {:ok, measure} <- Common.Deletion.soft_delete(measure),
   #          :ok <- publish(measure, :deleted) do
   #       {:ok, measure}
   #     end

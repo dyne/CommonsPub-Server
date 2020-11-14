@@ -7,8 +7,7 @@ defmodule CommonsPub.Mail.MailService do
   use Bamboo.Mailer, otp_app: :commons_pub
 
   def maybe_deliver_later(mail) do
-    CommonsPub.Config.get(__MODULE__, [])
-    |> Keyword.get(:adapter)
+    CommonsPub.Config.get([__MODULE__, :adapter], [])
     |> case do
       nil -> nil
       _other -> __MODULE__.deliver_later(mail)
@@ -16,8 +15,7 @@ defmodule CommonsPub.Mail.MailService do
   end
 
   def maybe_deliver_now(mail) do
-    CommonsPub.Config.get(__MODULE__, [])
-    |> Keyword.get(:adapter)
+    CommonsPub.Config.get([__MODULE__, :adapter], [])
     |> case do
       nil -> nil
       _other -> __MODULE__.deliver_now(mail)

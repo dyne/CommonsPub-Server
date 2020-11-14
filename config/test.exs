@@ -1,18 +1,25 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 import Config
-# We don't run a server during test. If one is required,
+# We don't necessarily run a server during test. If one is required,
 # you can enable the server option below.
 config :commons_pub, CommonsPub.Web.Endpoint,
   http: [port: 4001],
-  server: true
+  server: true,
+  check_origin: false
 
 # Logging
 
-config :logger, level: :warn
-# config :logger, level: :debug
-# config :commons_pub, CommonsPub.Repo, log: false
-config :commons_pub, :logging,
-  tests_output_graphql: false
+config :logger, level: :notice
+config :commons_pub, CommonsPub.Repo, log: :debug
+config :commons_pub, :logging, tests_output_graphql: false # see queries and responses in GraphQL test output
+config :commons_pub, :logging, tests_output_ap: false # see queries and responses in GraphQL test output
+
+# Set a higher stacktrace during development. Avoid configuring such
+# in production as building large stacktraces may be expensive.
+config :phoenix, :stacktrace_depth, 20
+
+# Initialize plugs at runtime for faster development compilation
+config :phoenix, :plug_init_mode, :runtime
 
 # Configure your database
 config :commons_pub, CommonsPub.Repo,

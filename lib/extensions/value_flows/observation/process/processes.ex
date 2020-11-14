@@ -1,14 +1,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Observation.Process.Processes do
+  import CommonsPub.Common, only: [maybe_put: 3, attr_get_id: 2]
+
   alias CommonsPub.{Activities, Common, Feeds, Repo}
   alias CommonsPub.GraphQL.{Fields, Page}
-  alias CommonsPub.Common.Contexts
+  alias CommonsPub.Contexts
   alias CommonsPub.Feeds.FeedActivities
   alias CommonsPub.Users.User
-  # alias CommonsPub.Meta.Pointers
 
-  # alias Geolocation.Geolocations
-  # alias Measurement.Measure
   alias ValueFlows.Observation.Process
   alias ValueFlows.Observation.Process.Queries
   alias ValueFlows.Observation.EconomicEvent.EconomicEvents
@@ -88,7 +87,8 @@ defmodule ValueFlows.Observation.Process.Processes do
 
   def trace(process), do: inputs(process)
 
-  def inputs(%{id: id}, action_id \\ nil) when not is_nil(action_id) do
+  def inputs(attrs, action_id \\ nil)
+  def inputs(%{id: id}, action_id) when not is_nil(action_id) do
     EconomicEvents.many([:default, input_of_id: id, action_id: action_id])
   end
 
@@ -100,7 +100,8 @@ defmodule ValueFlows.Observation.Process.Processes do
     {:ok, nil}
   end
 
-  def outputs(%{id: id}, action_id \\ nil) when not is_nil(action_id) do
+  def outputs(attrs, action_id \\ nil)
+  def outputs(%{id: id}, action_id) when not is_nil(action_id) do
     EconomicEvents.many([:default, output_of_id: id, action_id: action_id])
   end
 
@@ -112,53 +113,33 @@ defmodule ValueFlows.Observation.Process.Processes do
     {:ok, nil}
   end
 
-  ## mutations
-
-  def create(%User{} = creator, %{id: _id} = context, attrs)
-      when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      Process.create_changeset(creator, context, attrs)
-    end)
+  def preload_all(%Process{} = process) do
+    # shouldn't fail
+    {:ok, process} = one(id: process.id, preload: :all)
+    process
   end
+
+  ## mutations
 
   # @spec create(User.t(), attrs :: map) :: {:ok, Process.t()} | {:error, Changeset.t()}
   def create(%User{} = creator, attrs) when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      Process.create_changeset(creator, attrs)
-    end)
-  end
-
-  def do_create(creator, attrs, changeset_fn) do
     Repo.transact_with(fn ->
-      cs = changeset_fn.()
+      attrs = prepare_attrs(attrs)
 
-      with {:ok, process} <- Repo.insert(cs),
+      with {:ok, process} <- Repo.insert(Process.create_changeset(creator, attrs)),
            {:ok, process} <- ValueFlows.Util.try_tag_thing(creator, process, attrs),
            act_attrs = %{verb: "created", is_local: true},
            # FIXME
            {:ok, activity} <- Activities.create(creator, process, act_attrs),
            :ok <- publish(creator, process, activity, :created) do
-        process = %{process | creator: creator}
         index(process)
-        {:ok, process}
+        {:ok, preload_all(process)}
       end
     end)
   end
 
   defp publish(creator, process, activity, :created) do
     feeds = [
-      CommonsPub.Feeds.outbox_id(creator),
-      Feeds.instance_outbox_id()
-    ]
-
-    with :ok <- FeedActivities.publish(activity, feeds) do
-      ap_publish("create", process.id, creator.id)
-    end
-  end
-
-  defp publish(creator, context, process, activity, :created) do
-    feeds = [
-      context.outbox_id,
       CommonsPub.Feeds.outbox_id(creator),
       Feeds.instance_outbox_id()
     ]
@@ -188,36 +169,23 @@ defmodule ValueFlows.Observation.Process.Processes do
     :ok
   end
 
-  defp ap_publish(_, _, _), do: :ok
-
   # TODO: take the user who is performing the update
   # @spec update(%Process{}, attrs :: map) :: {:ok, Process.t()} | {:error, Changeset.t()}
   def update(%Process{} = process, attrs) do
-    do_update(process, attrs, &Process.update_changeset(&1, attrs))
-  end
-
-  def do_update(process, attrs, changeset_fn) do
     Repo.transact_with(fn ->
-      process =
-        Repo.preload(process, [
-          :based_on
-        ])
+      attrs = prepare_attrs(attrs)
 
-      cs =
-        process
-        |> changeset_fn.()
-
-      with {:ok, process} <- Repo.update(cs),
+      with {:ok, process} <- Repo.update(Process.update_changeset(process, attrs)),
            {:ok, process} <- ValueFlows.Util.try_tag_thing(nil, process, attrs),
            :ok <- publish(process, :updated) do
-        {:ok, process}
+        {:ok, preload_all(process)}
       end
     end)
   end
 
   def soft_delete(%Process{} = process) do
     Repo.transact_with(fn ->
-      with {:ok, process} <- Common.soft_delete(process),
+      with {:ok, process} <- Common.Deletion.soft_delete(process),
            :ok <- publish(process, :deleted) do
         {:ok, process}
       end
@@ -245,5 +213,13 @@ defmodule ValueFlows.Observation.Process.Processes do
     CommonsPub.Search.Indexer.maybe_index_object(object)
 
     :ok
+  end
+
+  defp prepare_attrs(attrs) do
+    attrs
+    |> maybe_put(:based_on_id, attr_get_id(attrs, :based_on))
+    |> maybe_put(:context_id,
+      attrs |> Map.get(:in_scope_of) |> CommonsPub.Common.maybe(&List.first/1)
+    )
   end
 end

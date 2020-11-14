@@ -12,13 +12,11 @@ defmodule ValueFlows.Planning.Intent do
   alias Measurement.Measure
 
   alias ValueFlows.Knowledge.Action
-  alias ValueFlows.Planning.Intent
-
   alias ValueFlows.Knowledge.ResourceSpecification
   alias ValueFlows.Proposal
+  alias ValueFlows.Proposal.ProposedIntent
   alias ValueFlows.Observation.EconomicResource
   alias ValueFlows.Observation.Process
-
 
   @type t :: %__MODULE__{}
 
@@ -38,6 +36,7 @@ defmodule ValueFlows.Planning.Intent do
     field(:has_end, :utc_datetime_usec)
     field(:has_point_in_time, :utc_datetime_usec)
     field(:due, :utc_datetime_usec)
+    field(:finished, :boolean, default: false)
 
     # array of URI
     field(:resource_classified_as, {:array, :string})
@@ -62,8 +61,6 @@ defmodule ValueFlows.Planning.Intent do
     belongs_to(:creator, User)
     belongs_to(:context, Pointers.Pointer)
 
-    field(:finished, :boolean, default: false)
-
     # field(:deletable, :boolean) # TODO - virtual field? how is it calculated?
 
     field(:is_public, :boolean, virtual: true)
@@ -82,59 +79,26 @@ defmodule ValueFlows.Planning.Intent do
     timestamps(inserted_at: false)
   end
 
-  @required ~w(name is_public)a
-  @cast @required ++ ~w(note at_location_id is_disabled image_id)a
+  @required ~w(name is_public action_id)a
+  @cast @required ++
+    ~w(note at_location_id is_disabled image_id context_id input_of_id output_of_id)a ++
+    ~w(available_quantity_id resource_quantity_id effort_quantity_id resource_conforms_to_id resource_inventoried_as_id provider_id receiver_id)a
 
-  def create_changeset(
-        %User{} = creator,
-        %Action{} = action,
-        %{id: _} = context,
-        attrs
-      ) do
-    %Intent{}
+  def create_changeset(%User{} = creator, attrs) do
+    %__MODULE__{}
     |> Changeset.cast(attrs, @cast)
     |> Changeset.validate_required(@required)
     |> Changeset.change(
       creator_id: creator.id,
-      context_id: context.id,
-      # TODO: move action to context and validate that it's a valid action
-      action_id: action.id,
       is_public: true
     )
-    |> common_changeset()
+    |> common_changeset(attrs)
   end
 
-  def create_changeset(
-        %User{} = creator,
-        %Action{} = action,
-        attrs
-      ) do
-    %Intent{}
-    |> Changeset.cast(attrs, @cast)
-    |> Changeset.validate_required(@required)
-    |> Changeset.change(
-      creator_id: creator.id,
-      action_id: action.id,
-      is_public: true
-    )
-    |> common_changeset()
-  end
-
-  def update_changeset(
-        %Intent{} = intent,
-        %{id: _} = context,
-        attrs
-      ) do
+  def update_changeset(%__MODULE__{} = intent, attrs) do
     intent
     |> Changeset.cast(attrs, @cast)
-    |> Changeset.change(context_id: context.id)
-    |> common_changeset()
-  end
-
-  def update_changeset(%Intent{} = intent, attrs) do
-    intent
-    |> Changeset.cast(attrs, @cast)
-    |> common_changeset()
+    |> common_changeset(attrs)
   end
 
   def measure_fields do
@@ -149,27 +113,9 @@ defmodule ValueFlows.Planning.Intent do
     end)
   end
 
-  def change_at_location(changeset, %Geolocation{} = location) do
-    Changeset.change(changeset,
-      at_location: location,
-      at_location_id: location.id
-    )
-  end
-
-  def change_action(changeset, %Action{} = action) do
-    Changeset.change(changeset, action_id: action.id)
-  end
-
-  def change_provider(changeset, %{id: _} = provider) do
-    Changeset.change(changeset, provider_id: provider.id)
-  end
-
-  def change_receiver(changeset, %{id: _} = receiver) do
-    Changeset.change(changeset, receiver_id: receiver.id)
-  end
-
-  defp common_changeset(changeset) do
+  defp common_changeset(changeset, attrs) do
     changeset
+    |> change_measures(attrs)
     |> change_public()
     |> change_disabled()
     |> Changeset.foreign_key_constraint(

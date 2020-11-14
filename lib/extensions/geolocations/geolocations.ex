@@ -4,14 +4,14 @@ defmodule Geolocation.Geolocations do
     Activities,
     Common,
     Feeds,
-    Follows,
+    # Follows,
     Repo
   }
 
   alias CommonsPub.Characters
 
   alias CommonsPub.GraphQL.{Fields, Page}
-  alias CommonsPub.Common.Contexts
+  alias CommonsPub.Contexts
   alias Geolocation
   alias Geolocation.Queries
   alias CommonsPub.Feeds.FeedActivities
@@ -93,7 +93,7 @@ defmodule Geolocation.Geolocations do
 
   @spec create(User.t(), context :: any, attrs :: map) ::
           {:ok, Geolocation.t()} | {:error, Changeset.t()}
-  def create(%User{} = creator, %{} = context, attrs) when is_map(attrs) do
+  def create(creator, %{} = context, attrs) when is_map(attrs) do
     Repo.transact_with(fn ->
       with {:ok, attrs} <- resolve_mappable_address(attrs),
            {:ok, item} <- insert_geolocation(creator, context, attrs),
@@ -106,12 +106,12 @@ defmodule Geolocation.Geolocations do
     end)
   end
 
-  def create(%User{} = creator, _, attrs) when is_map(attrs) do
+  def create(creator, _, attrs) when is_map(attrs) do
     create(creator, attrs)
   end
 
   @spec create(User.t(), attrs :: map) :: {:ok, Geolocation.t()} | {:error, Changeset.t()}
-  def create(%User{} = creator, attrs) when is_map(attrs) do
+  def create(creator, attrs) when is_map(attrs) do
     Repo.transact_with(fn ->
       with {:ok, attrs} <- resolve_mappable_address(attrs),
            {:ok, item} <- insert_geolocation(creator, attrs),
@@ -137,11 +137,12 @@ defmodule Geolocation.Geolocations do
     with {:ok, item} <- Repo.insert(cs), do: {:ok, item}
   end
 
+
   defp publish(creator, context, geolocation, activity, :created) do
     feeds = [
-      context.outbox_id,
+      CommonsPub.Feeds.outbox_id(context),
       CommonsPub.Feeds.outbox_id(creator),
-      geolocation.outbox_id,
+      CommonsPub.Feeds.outbox_id(geolocation),
       Feeds.instance_outbox_id()
     ]
 
@@ -153,12 +154,12 @@ defmodule Geolocation.Geolocations do
   defp publish(creator, geolocation, activity, :created) do
     feeds = [
       CommonsPub.Feeds.outbox_id(creator),
-      geolocation.outbox_id,
+      CommonsPub.Feeds.outbox_id(geolocation),
       Feeds.instance_outbox_id()
     ]
 
     with :ok <- FeedActivities.publish(activity, feeds) do
-      ap_publish("create", geolocation.id, creator.id)
+      ap_publish("create", geolocation.id, CommonsPub.Common.maybe_get(creator, :id))
     end
   end
 
@@ -187,7 +188,7 @@ defmodule Geolocation.Geolocations do
   @spec soft_delete(User.t(), Geolocation.t()) :: {:ok, Geolocation.t()} | {:error, Changeset.t()}
   def soft_delete(%User{} = user, %Geolocation{} = geo) do
     Repo.transact_with(fn ->
-      with {:ok, geo} <- Common.soft_delete(geo),
+      with {:ok, geo} <- Common.Deletion.soft_delete(geo),
            :ok <- ap_publish("delete", geo.id, user.id) do
         {:ok, geo}
       end

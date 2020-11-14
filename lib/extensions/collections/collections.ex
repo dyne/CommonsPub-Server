@@ -2,16 +2,16 @@
 defmodule CommonsPub.Collections do
   alias CommonsPub.{
     Activities,
-    Blocks,
+    # Blocks,
     Common,
-    Features,
+    # Features,
     Feeds,
-    Flags,
-    Follows,
-    Likes,
-    Repo,
-    Resources,
-    Threads
+    # Flags,
+    # Follows,
+    # Likes,
+    Repo
+    # Resources,
+    # Threads
   }
 
   alias CommonsPub.Characters
@@ -48,7 +48,7 @@ defmodule CommonsPub.Collections do
       # attrs = Characters.prepare_username(attrs)
 
       # TODO: address activity to context's outbox/followers
-      community_or_context = CommonHelper.maybe_preload(community_or_context, :character)
+      community_or_context = CommonsPub.Repo.maybe_preload(community_or_context, :character)
 
       # with {:ok, character} <- Characters.create(creator, attrs),
       #      {:ok, coll_attrs} <- create_boxes(character, attrs),
@@ -122,7 +122,7 @@ defmodule CommonsPub.Collections do
           {:ok, Collection.t()} | {:error, Changeset.t()}
   def update(%User{} = user, %Collection{} = collection, attrs) do
     Repo.transact_with(fn ->
-      collection = Repo.preload(collection, :community)
+      collection = Repo.preload(collection, context: [:character])
 
       with {:ok, collection} <- Repo.update(Collection.update_changeset(collection, attrs)),
            {:ok, character} <- Characters.update(user, collection.character, attrs),
@@ -137,18 +137,19 @@ defmodule CommonsPub.Collections do
     Repo.update_all(Queries.query(Collection, filters), set: updates)
   end
 
-  def soft_delete(%User{} = user, %Collection{} = collection) do
+  def soft_delete(%User{} = _user, %Collection{} = collection) do
+    collection = Repo.preload(collection, context: [:character])
+
     Repo.transact_with(fn ->
-      with {:ok, collection} <- Common.soft_delete(collection),
-           %{collection: colls, feed: feeds} = deleted_ids([collection]),
-           :ok <- chase_delete(user, colls, feeds),
+      with {:ok, collection} <- Common.Deletion.soft_delete(collection),
+           :ok <- CommonsPub.Characters.soft_delete(collection),
            :ok <- ap_publish("delete", collection) do
         {:ok, collection}
       end
     end)
   end
 
-  @delete_by_filters [select: :delete, deleted: false]
+  @delete_by_filters [deleted: false]
 
   def soft_delete_by(%User{} = user, filters) do
     with {:ok, _} <-
@@ -156,48 +157,10 @@ defmodule CommonsPub.Collections do
              {_, ids} =
                update_by(user, @delete_by_filters ++ filters, deleted_at: DateTime.utc_now())
 
-             %{collection: collection, feed: feed} = deleted_ids(ids)
-
-             with :ok <- chase_delete(user, collection, feed) do
-               ap_publish("delete", collection)
-             end
+             CommonsPub.Characters.soft_delete(ids)
+             ap_publish("delete", ids)
            end),
          do: :ok
-  end
-
-  defp deleted_ids(records) do
-    Enum.reduce(records, %{collection: [], feed: []}, fn
-      %{id: id, inbox_id: nil, outbox_id: nil}, acc ->
-        Map.put(acc, :collection, [id | acc.collection])
-
-      %{id: id, inbox_id: nil, outbox_id: o}, acc ->
-        Map.merge(acc, %{collection: [id | acc.collection], feed: [o | acc.feed]})
-
-      %{id: id, inbox_id: i, outbox_id: nil}, acc ->
-        Map.merge(acc, %{collection: [id | acc.collection], feed: [i | acc.feed]})
-
-      %{id: id, inbox_id: i, outbox_id: o}, acc ->
-        Map.merge(acc, %{collection: [id | acc.collection], feed: [i, o | acc.feed]})
-    end)
-  end
-
-  defp chase_delete(user, collections) do
-    with :ok <- Activities.soft_delete_by(user, context: collections),
-         :ok <- Blocks.soft_delete_by(user, context: collections),
-         :ok <- Features.soft_delete_by(user, context: collections),
-         :ok <- Flags.soft_delete_by(user, context: collections),
-         :ok <- Follows.soft_delete_by(user, context: collections),
-         :ok <- Likes.soft_delete_by(user, context: collections),
-         :ok <- Resources.soft_delete_by(user, collection: collections),
-         :ok <- Threads.soft_delete_by(user, context: collections) do
-      :ok
-    end
-  end
-
-  defp chase_delete(user, collections, []), do: chase_delete(user, collections)
-
-  defp chase_delete(user, collections, feeds) do
-    with :ok <- Feeds.soft_delete_by(user, id: feeds), do: chase_delete(user, collections)
   end
 
   @doc false
@@ -206,36 +169,25 @@ defmodule CommonsPub.Collections do
     |> Keyword.fetch!(:default_outbox_query_contexts)
   end
 
-  defp publish(creator, %{character: %{outbox_id: context_outbox}}, collection, activity) do
-    feeds = [
-      context_outbox,
-      CommonsPub.Feeds.outbox_id(creator),
-      collection.outbox_id,
-      Feeds.instance_outbox_id()
-    ]
-
-    FeedActivities.publish(activity, feeds)
-  end
-
-  defp publish(creator, %{outbox_id: community_or_context_outbox}, collection, activity) do
-    feeds = [
-      community_or_context_outbox,
-      CommonsPub.Feeds.outbox_id(creator),
-      collection.outbox_id,
-      Feeds.instance_outbox_id()
-    ]
-
-    FeedActivities.publish(activity, feeds)
-  end
-
-  defp publish(creator, _, collection, activity) do
+  defp publish(creator, nil, collection, activity) do
     publish(creator, collection, activity)
+  end
+
+  defp publish(creator, context, collection, activity) do
+    feeds = [
+      CommonsPub.Feeds.outbox_id(context),
+      CommonsPub.Feeds.outbox_id(creator),
+      CommonsPub.Feeds.outbox_id(collection),
+      Feeds.instance_outbox_id()
+    ]
+
+    FeedActivities.publish(activity, feeds)
   end
 
   defp publish(creator, collection, activity) do
     feeds = [
       CommonsPub.Feeds.outbox_id(creator),
-      collection.outbox_id,
+      CommonsPub.Feeds.outbox_id(collection),
       Feeds.instance_outbox_id()
     ]
 
@@ -280,9 +232,17 @@ defmodule CommonsPub.Collections do
     end
   end
 
+  def ap_receive_update(actor, data, creator) do
+    with {:ok, coll} <- CommonsPub.Collections.update(creator, actor, data) do
+      {:ok, coll}
+    else
+      {:error, e} -> {:error, e}
+    end
+  end
+
   def indexing_object_format(%CommonsPub.Collections.Collection{} = collection) do
-    collection = CommonHelper.maybe_preload(collection, [:context, :creator])
-    context = CommonHelper.maybe_preload(collection.context, :character)
+    collection = CommonsPub.Repo.maybe_preload(collection, [:context, :creator])
+    context = CommonsPub.Repo.maybe_preload(collection.context, :character)
 
     follower_count =
       case CommonsPub.Follows.FollowerCounts.one(context: collection.id) do

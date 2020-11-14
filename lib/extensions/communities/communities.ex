@@ -4,16 +4,16 @@ defmodule CommonsPub.Communities do
 
   alias CommonsPub.{
     Activities,
-    Blocks,
-    Collections,
+    # Blocks,
+    # Collections,
     Common,
-    Features,
+    # Features,
     Feeds,
-    Flags,
-    Follows,
-    Likes,
-    Repo,
-    Threads
+    # Flags,
+    # Follows,
+    # Likes,
+    Repo
+    # Threads
   }
 
   alias CommonsPub.Characters
@@ -23,8 +23,6 @@ defmodule CommonsPub.Communities do
   alias CommonsPub.Feeds.FeedActivities
   alias CommonsPub.Users.User
   alias CommonsPub.Workers.APPublishWorker
-
-  alias CommonsPub.Utils.Web.CommonHelper
 
   ### Cursor generators
 
@@ -51,7 +49,7 @@ defmodule CommonsPub.Communities do
   def create(%User{} = creator, %{id: _} = community_or_context, %{} = attrs) do
     Repo.transact_with(fn ->
       # TODO: address activity to context's outbox/followers
-      community_or_context = CommonHelper.maybe_preload(community_or_context, :character)
+      community_or_context = CommonsPub.Repo.maybe_preload(community_or_context, :character)
 
       # with {:ok, comm_attrs} <- create_boxes(character, attrs),
       with {:ok, comm} <- insert_community(creator, community_or_context, attrs),
@@ -118,6 +116,8 @@ defmodule CommonsPub.Communities do
           {:ok, Community.t()} | {:error, Changeset.t()}
   def update(%User{} = user, %Community{} = community, attrs) when is_map(attrs) do
     Repo.transact_with(fn ->
+      community = Repo.preload(community, [:creator, context: [:character]])
+
       with {:ok, comm} <- Repo.update(Community.update_changeset(community, attrs)),
            {:ok, character} <- Characters.update(user, community.character, attrs),
            community <- %{comm | character: character},
@@ -131,11 +131,12 @@ defmodule CommonsPub.Communities do
     Repo.update_all(Queries.query(Community, filters), set: updates)
   end
 
-  def soft_delete(%User{} = user, %Community{} = community) do
+  def soft_delete(%User{} = _user, %Community{} = community) do
     Repo.transact_with(fn ->
-      with {:ok, community} <- Common.soft_delete(community),
-           %{community: comms, feed: feeds} = deleted_ids([community]),
-           :ok <- chase_delete(user, comms, feeds),
+      community = Repo.preload(community, [:creator, :character])
+
+      with {:ok, community} <- Common.Deletion.soft_delete(community),
+           :ok <- CommonsPub.Characters.soft_delete(community),
            :ok <- ap_publish("delete", community) do
         {:ok, community}
       end
@@ -146,50 +147,13 @@ defmodule CommonsPub.Communities do
     with {:ok, _} <-
            Repo.transact_with(fn ->
              {_, ids} =
-               update_by(user, [{:deleted, false}, {:select, :delete} | filters],
-                 deleted_at: DateTime.utc_now()
-               )
+               update_by(user, [{:deleted, false} | filters], deleted_at: DateTime.utc_now())
 
-             %{community: community, feed: feed} = deleted_ids(ids)
+             CommonsPub.Characters.soft_delete(ids)
 
-             with :ok <- chase_delete(user, community, feed) do
-               ap_publish("delete", community)
-             end
+             ap_publish("delete", ids)
            end),
          do: :ok
-  end
-
-  defp deleted_ids(records) do
-    Enum.reduce(records, %{community: [], feed: []}, fn
-      %{id: id, inbox_id: nil, outbox_id: nil}, acc ->
-        Map.put(acc, :community, [id | acc.community])
-
-      %{id: id, inbox_id: nil, outbox_id: o}, acc ->
-        Map.merge(acc, %{community: [id | acc.community], feed: [o | acc.feed]})
-
-      %{id: id, inbox_id: i, outbox_id: nil}, acc ->
-        Map.merge(acc, %{community: [id | acc.community], feed: [i | acc.feed]})
-
-      %{id: id, inbox_id: i, outbox_id: o}, acc ->
-        Map.merge(acc, %{community: [id | acc.community], feed: [i, o | acc.feed]})
-    end)
-  end
-
-  defp chase_delete(user, communities, []) do
-    with :ok <- Activities.soft_delete_by(user, context: communities),
-         :ok <- Blocks.soft_delete_by(user, context: communities),
-         :ok <- Collections.soft_delete_by(user, community: communities),
-         :ok <- Features.soft_delete_by(user, context: communities),
-         :ok <- Flags.soft_delete_by(user, context: communities),
-         :ok <- Follows.soft_delete_by(user, context: communities),
-         :ok <- Likes.soft_delete_by(user, context: communities),
-         :ok <- Threads.soft_delete_by(user, context: communities) do
-      :ok
-    end
-  end
-
-  defp chase_delete(user, communities, feeds) do
-    with :ok <- Feeds.soft_delete_by(user, id: feeds), do: chase_delete(user, communities, [])
   end
 
   # defp default_inbox_query_contexts() do
@@ -204,11 +168,12 @@ defmodule CommonsPub.Communities do
   end
 
   # Feeds
-  defp publish(creator, community_or_context, community, activity) do
+
+  defp publish(creator, context, community, activity) do
     feeds = [
-      community_or_context.outbox_id,
+      CommonsPub.Feeds.outbox_id(context),
       CommonsPub.Feeds.outbox_id(creator),
-      community.outbox_id,
+      CommonsPub.Feeds.outbox_id(community),
       Feeds.instance_outbox_id()
     ]
 
@@ -216,7 +181,12 @@ defmodule CommonsPub.Communities do
   end
 
   defp publish(creator, community, activity) do
-    feeds = [community.outbox_id, CommonsPub.Feeds.outbox_id(creator), Feeds.instance_outbox_id()]
+    feeds = [
+      CommonsPub.Feeds.outbox_id(community),
+      CommonsPub.Feeds.outbox_id(creator),
+      Feeds.instance_outbox_id()
+    ]
+
     FeedActivities.publish(activity, feeds)
   end
 
@@ -232,9 +202,41 @@ defmodule CommonsPub.Communities do
 
   defp ap_publish(_, _), do: :ok
 
+  def ap_publish_activity("create", %Community{} = community) do
+    with {:ok, actor} <- ActivityPub.Actor.get_cached_by_local_id(community.creator_id),
+         {:ok, ap_community} <- ActivityPub.Actor.get_cached_by_local_id(community.id),
+         community_object <-
+           ActivityPubWeb.ActorView.render("actor.json", %{actor: ap_community}),
+         params <- %{
+           actor: actor,
+           to: [CommonsPub.ActivityPub.Utils.public_uri()],
+           object: community_object,
+           context: ActivityPub.Utils.generate_context_id(),
+           additional: %{
+             "cc" => [actor.data["followers"]]
+           }
+         },
+         {:ok, activity} <- ActivityPub.create(params) do
+      Ecto.Changeset.change(community.character, %{canonical_url: community_object["id"]})
+      |> CommonsPub.Repo.update()
+
+      {:ok, activity}
+    else
+      {:error, e} -> {:error, e}
+    end
+  end
+
+  def ap_receive_update(actor, data, creator) do
+    with {:ok, comm} <- CommonsPub.Communities.update(creator, actor, data) do
+      {:ok, comm}
+    else
+      {:error, e} -> {:error, e}
+    end
+  end
+
   def indexing_object_format(%CommonsPub.Communities.Community{} = community) do
-    community = CommonHelper.maybe_preload(community, [:context, :creator])
-    context = CommonHelper.maybe_preload(community.context, :character)
+    community = Repo.preload(community, [:creator, context: [:character]])
+    context = community.context
 
     follower_count =
       case CommonsPub.Follows.FollowerCounts.one(context: community.id) do

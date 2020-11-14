@@ -98,7 +98,7 @@ defmodule CommonsPub.Web.Router do
   end
 
   @doc """
-  Serve the mock homepage, or forward ActivityPub API requests to the AP module's router
+  Serve a mock homepage
   """
 
   scope "/" do

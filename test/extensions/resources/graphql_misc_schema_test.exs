@@ -78,7 +78,7 @@ defmodule CommonsPub.Web.GraphQL.MiscTest do
   #   setup do
   #     mock(fn
   #       env ->
-  #         apply(HttpRequestMock, :request, [env])
+  #         apply(CommonsPub.HttpRequestMock, :request, [env])
   #     end)
 
   #     :ok

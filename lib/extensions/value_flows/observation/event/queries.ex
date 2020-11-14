@@ -76,7 +76,6 @@ defmodule ValueFlows.Observation.EconomicEvent.Queries do
 
   def filter(q, :default) do
     filter(q, [:deleted])
-    # filter q, [:deleted, {:preload, :provider}, {:preload, :receiver}]
   end
 
   def filter(q, :offer) do
@@ -236,7 +235,6 @@ defmodule ValueFlows.Observation.EconomicEvent.Queries do
   def filter(q, {:resource_inventoried_as_id, id}) when is_binary(id) do
     where(q, [event: c], c.resource_inventoried_as_id == ^id)
   end
-
 
   def filter(q, {:to_resource_inventoried_as_id, ids}) when is_list(ids) do
     where(q, [event: c], c.to_resource_inventoried_as_id in ^ids)

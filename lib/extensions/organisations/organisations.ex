@@ -10,7 +10,7 @@ defmodule Organisation.Organisations do
   }
 
   alias CommonsPub.GraphQL.{Fields, Page}
-  alias CommonsPub.Common.Contexts
+  alias CommonsPub.Contexts
   alias Organisation
   alias Organisation.Queries
   # alias CommonsPub.Feeds.FeedActivities

@@ -44,12 +44,6 @@ defmodule CommonsPub.Web.GraphQL.UsersResolver do
 
   def me(%{token: _, me: me}, _, _), do: {:ok, me}
 
-  def search_follows(%Me{user: %User{id: id}}, _, _) do
-    Follows.many(preset: {:search_follows, id})
-  end
-
-  def search_follows(_, _, _), do: {:ok, []}
-
   def user(%{user_id: id}, info) do
     Users.one(join: :character, preload: :character, id: id, user: GraphQL.current_user(info))
   end
@@ -307,13 +301,13 @@ defmodule CommonsPub.Web.GraphQL.UsersResolver do
     end)
   end
 
-  def outbox_edge(%User{outbox_id: _id} = user, page_opts, info) do
+  def outbox_edge(%User{character: %{outbox_id: _id}} = user, page_opts, info) do
     with :ok <- GraphQL.not_in_list_or_empty_page(info) do
       user_outbox_edge(user, page_opts, info)
     end
   end
 
-  def user_outbox_edge(%User{outbox_id: id}, page_opts, info) do
+  def user_outbox_edge(%User{character: %{outbox_id: id}}, page_opts, info) do
     ResolvePage.run(%ResolvePage{
       module: __MODULE__,
       fetcher: :fetch_user_outbox_edge,
@@ -345,6 +339,8 @@ defmodule CommonsPub.Web.GraphQL.UsersResolver do
       info: info
     })
   end
+
+  def creator_edge(_, _, info), do: {:ok, nil}
 
   def fetch_creator_edge(info, ids) do
     user = GraphQL.current_user(info)

@@ -11,7 +11,7 @@ defmodule ValueFlows.Proposal.ProposedToGraphQLTest do
     test "creates a new proposed to item" do
       user = fake_user!()
       proposal = fake_proposal!(user)
-      agent = fake_user!()
+      agent = fake_agent!()
 
       q = propose_to_mutation(fields: [proposed: [:id], proposed_to: [:id]])
 
@@ -32,7 +32,7 @@ defmodule ValueFlows.Proposal.ProposedToGraphQLTest do
   describe "delete_proposed_to" do
     test "deletes an existing proposed to item" do
       user = fake_user!()
-      proposed_to = fake_proposed_to!(fake_user!(), fake_proposal!(user))
+      proposed_to = fake_proposed_to!(fake_agent!(), fake_proposal!(user))
 
       q = delete_proposed_to_mutation()
       conn = user_conn(user)

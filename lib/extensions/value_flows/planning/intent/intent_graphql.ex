@@ -4,43 +4,20 @@ defmodule ValueFlows.Planning.Intent.GraphQL do
   @radius_default_distance 100_000
 
   require Logger
-  # import ValueFlows.Util, only: [maybe_put: 3]
 
-  alias CommonsPub.{
-    # Activities,
-    # Communities,
-    GraphQL,
-    Repo
-    # User
-  }
+  alias CommonsPub.{GraphQL, Repo}
 
   alias CommonsPub.GraphQL.{
     ResolveField,
-    # ResolveFields,
-    # ResolvePage,
     ResolvePages,
     ResolveRootPage,
     FetchPage
-    # FetchPages,
-    # CommonResolver
   }
-
-  # alias CommonsPub.Resources.Resource
-  # alias CommonsPub.Common.Enums
-  alias CommonsPub.Meta.Pointers
-  # alias CommonsPub.Communities.Community
-  # alias CommonsPub.Web.GraphQL.CommunitiesResolver
 
   alias ValueFlows.Planning.Intent
   alias ValueFlows.Planning.Intent.Intents
   alias ValueFlows.Planning.Intent.Queries
-  alias ValueFlows.Knowledge.Action.Actions
-  # alias CommonsPub.Web.GraphQL.CommonResolver
   alias CommonsPub.Web.GraphQL.UploadResolver
-
-  # SDL schema import
-  #  use Absinthe.Schema.Notation
-  # import_sdl path: "lib/value_flows/graphql/schemas/planning.gql"
 
   ## resolvers
 
@@ -69,7 +46,6 @@ defmodule ValueFlows.Planning.Intent.GraphQL do
   end
 
   def intents_filtered(page_opts, _ \\ nil) do
-    # IO.inspect(intents_filtered: page_opts)
     intents_filter(page_opts, [])
   end
 
@@ -117,8 +93,6 @@ defmodule ValueFlows.Planning.Intent.GraphQL do
          } = page_opts,
          filters_acc
        ) do
-    # IO.inspect(geo_with_point: page_opts)
-
     intents_filter_next(
       :geolocation,
       {
@@ -138,10 +112,7 @@ defmodule ValueFlows.Planning.Intent.GraphQL do
          } = page_opts,
          filters_acc
        ) do
-    # IO.inspect(geo_with_address: page_opts)
-
     with {:ok, coords} <- Geocoder.call(address) do
-      # IO.inspect(coords)
 
       intents_filter(
         Map.merge(
@@ -173,8 +144,6 @@ defmodule ValueFlows.Planning.Intent.GraphQL do
          } = page_opts,
          filters_acc
        ) do
-    # IO.inspect(geo_without_distance: page_opts)
-
     intents_filter(
       Map.merge(
         page_opts,
@@ -194,17 +163,12 @@ defmodule ValueFlows.Planning.Intent.GraphQL do
          _,
          filters_acc
        ) do
-    # IO.inspect(filters_query: filters_acc)
-
     # finally, if there's no more known params to acumulate, query with the filters
     Intents.many(filters_acc)
   end
 
   defp intents_filter_next(param_remove, filter_add, page_opts, filters_acc)
        when is_list(param_remove) and is_list(filter_add) do
-    # IO.inspect(intents_filter_next: param_remove)
-    # IO.inspect(intents_filter_add: filter_add)
-
     intents_filter(Map.drop(page_opts, param_remove), filters_acc ++ filter_add)
   end
 
@@ -251,12 +215,20 @@ defmodule ValueFlows.Planning.Intent.GraphQL do
     ])
   end
 
-  def agent_intents(%{id: agent}, %{} = page_opts, info) do
+  def agent_intents(%{id: agent}, %{} = _page_opts, _info) do
     intents_filtered(%{agent: agent})
   end
 
-  def provider_intents(%{id: provider}, %{} = page_opts, info) do
+  def agent_intents(_, _page_opts, _info) do
+    {:ok, nil}
+  end
+
+  def provider_intents(%{id: provider}, %{} = _page_opts, _info) do
     intents_filtered(%{provider: provider})
+  end
+
+  def provider_intents(_, _page_opts, _info) do
+    {:ok, nil}
   end
 
   def agent_intents_edge(%{id: agent}, %{} = page_opts, info) do
@@ -299,6 +271,36 @@ defmodule ValueFlows.Planning.Intent.GraphQL do
         user: GraphQL.current_user(info)
       ]
     )
+  end
+
+  def fetch_resource_inventoried_as_edge(%{resource_inventoried_as_id: id} = thing, _, _)
+      when is_binary(id) do
+    thing = Repo.preload(thing, :resource_inventoried_as)
+    {:ok, Map.get(thing, :resource_inventoried_as)}
+  end
+
+  def fetch_resource_inventoried_as_edge(_, _, _) do
+    {:ok, nil}
+  end
+
+  def fetch_input_of_edge(%{input_of_id: id} = thing, _, _)
+      when is_binary(id) do
+    thing = Repo.preload(thing, :input_of)
+    {:ok, Map.get(thing, :input_of)}
+  end
+
+  def fetch_input_of_edge(_, _, _) do
+    {:ok, nil}
+  end
+
+  def fetch_output_of_edge(%{output_of_id: id} = thing, _, _)
+      when is_binary(id) do
+    thing = Repo.preload(thing, :output_of)
+    {:ok, Map.get(thing, :output_of)}
+  end
+
+  def fetch_output_of_edge(_, _, _) do
+    {:ok, nil}
   end
 
   def list_intents(page_opts, base_filters) do
@@ -351,76 +353,25 @@ defmodule ValueFlows.Planning.Intent.GraphQL do
     end
   end
 
-  def create_intent(%{intent: %{in_scope_of: context_ids} = intent_attrs}, info)
-      when is_list(context_ids) do
-    # FIXME: support multiple contexts?
-    context_id = List.first(context_ids)
-
-    create_intent(
-      %{intent: Map.merge(intent_attrs, %{in_scope_of: context_id})},
-      info
-    )
-  end
-
-  def create_intent(%{intent: %{in_scope_of: context_id, action: action_id} = intent_attrs}, info)
-      when not is_nil(context_id) do
-    # FIXME, need to do something like validate_thread_context to validate the provider/receiver agent ID
+  def create_intent(%{intent: intent_attrs}, info) do
     Repo.transact_with(fn ->
       with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
-           {:ok, action} <- Actions.action(action_id),
-           {:ok, pointer} <- Pointers.one(id: context_id),
-           context = Pointers.follow!(pointer),
            {:ok, uploads} <- UploadResolver.upload(user, intent_attrs, info),
            intent_attrs = Map.merge(intent_attrs, uploads),
            intent_attrs = Map.merge(intent_attrs, %{is_public: true}),
-           {:ok, intent} <- Intents.create(user, action, context, intent_attrs) do
-        {:ok, %{intent: %{intent | action: action}}}
+           {:ok, intent} <- Intents.create(user, intent_attrs) do
+        {:ok, %{intent: intent}}
       end
     end)
   end
 
-  # FIXME: duplication!
-  def create_intent(%{intent: %{action: action_id} = intent_attrs}, info) do
-    Repo.transact_with(fn ->
-      with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
-           {:ok, action} <- Actions.action(action_id),
-           {:ok, uploads} <- UploadResolver.upload(user, intent_attrs, info),
-           intent_attrs = Map.merge(intent_attrs, uploads),
-           intent_attrs = Map.merge(intent_attrs, %{is_public: true}),
-           {:ok, intent} <- Intents.create(user, action, intent_attrs) do
-        {:ok, %{intent: %{intent | action: action}}}
-      end
-    end)
-  end
-
-  def update_intent(%{intent: %{in_scope_of: context_ids} = changes}, info) do
-    context_id = List.first(context_ids)
-
-    Repo.transact_with(fn ->
-      do_update(changes, info, fn intent, changes ->
-        with {:ok, pointer} <- Pointers.one(id: context_id) do
-          context = Pointers.follow!(pointer)
-          Intents.update(intent, context, changes)
-        end
-      end)
-    end)
-  end
-
-  def update_intent(%{intent: changes}, info) do
-    Repo.transact_with(fn ->
-      do_update(changes, info, fn intent, changes ->
-        Intents.update(intent, changes)
-      end)
-    end)
-  end
-
-  defp do_update(%{id: id} = changes, info, update_fn) do
+  def update_intent(%{intent: %{id: id} = changes}, info) do
     with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
          {:ok, intent} <- intent(%{id: id}, info),
          :ok <- ensure_update_permission(user, intent),
          {:ok, uploads} <- UploadResolver.upload(user, changes, info),
          changes = Map.merge(changes, uploads),
-         {:ok, intent} <- update_fn.(intent, changes) do
+         {:ok, intent} <- Intents.update(intent, changes) do
       {:ok, %{intent: intent}}
     end
   end

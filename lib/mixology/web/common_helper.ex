@@ -65,13 +65,13 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
   end
 
   def map_get(%Ecto.Association.NotLoaded{} = map, key, fallback) when is_atom(key) do
-    Logger.error("Cannot get key `#{key}` from an unloaded map: #{inspect(map)}")
+    Logger.error("Cannot get key `#{key}` from an unloaded map: #{inspect(map, pretty: true)}")
     fallback
   end
 
   def map_get(map, %Ecto.Association.NotLoaded{} = key, fallback) do
     Logger.warn("Cannot get from an unloaded key, trying to preload...")
-    map_get(map, maybe_preload(map, key), fallback)
+    map_get(map, CommonsPub.Repo.maybe_preload(map, key), fallback)
   end
 
   @doc """
@@ -107,7 +107,6 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
   def map_get(map, key, fallback) do
     Map.get(map, key, fallback)
   end
-
 
   def input_to_atoms(data) do
     data |> Map.new(fn {k, v} -> {Common.maybe_str_to_atom(k), v} end)
@@ -145,28 +144,6 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
       _ ->
         ""
     end
-  end
-
-  def maybe_preload(obj, :context) do
-    prepare_context(obj)
-  end
-
-  def maybe_preload(obj, preloads) do
-    maybe_do_preload(obj, preloads)
-  end
-
-  defp maybe_do_preload(obj, preloads) when is_struct(obj) do
-    CommonsPub.Repo.preload(obj, preloads)
-  rescue
-    ArgumentError ->
-      obj
-
-    MatchError ->
-      obj
-  end
-
-  defp maybe_do_preload(obj, _) do
-    obj
   end
 
   @doc """
@@ -277,98 +254,6 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
     {:noreply, socket |> assign(page: assigns.page + 1) |> fetch_function.(assigns)}
   end
 
-  def contexts_fetch!(ids) do
-    with {:ok, ptrs} <-
-           CommonsPub.Meta.Pointers.many(id: List.flatten(ids)) do
-      CommonsPub.Meta.Pointers.follow!(ptrs)
-    end
-  end
-
-  def context_fetch(id) do
-    with {:ok, pointer} <- CommonsPub.Meta.Pointers.one(id: id) do
-      CommonsPub.Meta.Pointers.follow!(pointer)
-    end
-  end
-
-  def prepare_context(%{} = thing) do
-    if Map.has_key?(thing, :context_id) and !is_nil(thing.context_id) do
-      thing = maybe_do_preload(thing, :context)
-
-      # IO.inspect(context_maybe_preloaded: thing)
-
-      context_follow(thing)
-    else
-      if Map.has_key?(thing, :context) do
-        # Pointer already loaded?
-        context_follow(thing)
-      else
-        thing
-      end
-    end
-  end
-
-  def prepare_context(thing) do
-    thing
-  end
-
-  defp context_follow(%{context: %Pointers.Pointer{} = pointer} = thing) do
-    context = CommonsPub.Meta.Pointers.follow!(pointer)
-
-    add_context_type(
-      thing
-      |> Map.merge(%{context: context})
-    )
-  end
-
-  defp context_follow(%{context: %{id: _id}} = thing) do
-    # IO.inspect("we already have a loaded object")
-    add_context_type(thing)
-  end
-
-  defp context_follow(%{context_id: nil} = thing) do
-    add_context_type(thing)
-  end
-
-  defp context_follow(%{context_id: context_id} = thing) do
-    {:ok, pointer} = CommonsPub.Meta.Pointers.one(id: context_id)
-
-    context_follow(
-      thing
-      |> Map.merge(%{context: pointer})
-    )
-  end
-
-  defp context_follow(thing) do
-    thing
-  end
-
-  defp add_context_type(%{context_type: _} = thing) do
-    thing
-  end
-
-  defp add_context_type(%{context: context} = thing) do
-    type = context_type(context)
-
-    thing
-    |> Map.merge(%{context_type: type})
-  end
-
-  defp add_context_type(thing) do
-    thing
-    |> Map.merge(%{context_type: "unknown"})
-  end
-
-  def context_type(%{__struct__: name}) do
-    name
-    |> Module.split()
-    |> Enum.at(-1)
-    |> String.downcase()
-  end
-
-  def context_type(_) do
-    nil
-  end
-
   def prepare_common(object) do
     link = e(content_url(object), e(object, :canonical_url, "#no-link"))
     icon = icon(object)
@@ -391,7 +276,7 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
   def image(parent, style, size) do
     parent =
       if(is_map(parent) and Map.has_key?(parent, :__struct__)) do
-        maybe_preload(parent, image: [:content_upload, :content_mirror])
+        CommonsPub.Repo.maybe_preload(parent, image: [:content_upload, :content_mirror])
       end
 
     image_url(parent, :image, style, size)
@@ -400,7 +285,7 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
   def icon(parent, style, size) do
     parent =
       if(is_map(parent) and Map.has_key?(parent, :__struct__)) do
-        maybe_preload(parent, icon: [:content_upload, :content_mirror])
+        CommonsPub.Repo.maybe_preload(parent, icon: [:content_upload, :content_mirror])
       end
 
     image_url(parent, :icon, style, size)
@@ -409,10 +294,10 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
   defp image_url(parent, field_name, style, size) do
     if(is_map(parent) and Map.has_key?(parent, :__struct__)) do
       # IO.inspect(image_field: field_name)
-      # parent = maybe_preload(parent, field_name: [:content_upload, :content_mirror])
+      # parent = CommonsPub.Repo.maybe_preload(parent, field_name: [:content_upload, :content_mirror])
       # IO.inspect(image_parent: parent)
 
-      # img = maybe_preload(Map.get(parent, field_name), :content_upload)
+      # img = CommonsPub.Repo.maybe_preload(Map.get(parent, field_name), :content_upload)
 
       img = e(parent, field_name, :content_upload, :path, nil)
 
@@ -421,7 +306,7 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
         CommonsPub.Uploads.prepend_url(img)
       else
         # otherwise try external image
-        # img = maybe_preload(Map.get(parent, field_name), :content_mirror)
+        # img = CommonsPub.Repo.maybe_preload(Map.get(parent, field_name), :content_mirror)
         img = e(parent, field_name, :content_mirror, :url, nil)
 
         if(!is_nil(img)) do
@@ -443,7 +328,7 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
   def content_url(parent) do
     parent =
       if(Map.has_key?(parent, :__struct__)) do
-        maybe_preload(parent, content: [:content_upload, :content_mirror])
+        CommonsPub.Repo.maybe_preload(parent, content: [:content_upload, :content_mirror])
       end
 
     url = e(parent, :content, :content_upload, :path, nil)
@@ -582,19 +467,27 @@ defmodule CommonsPub.Utils.Web.CommonHelper do
     canonical_url
   end
 
+  def object_url({:error, %{status: 404}}) do
+    "/404"
+  end
+
   def object_url(%{__struct__: module_name} = activity) do
-    IO.inspect(unsupported_by_activity_url: module_name)
-    "/+++" <> Map.get(activity, :id) <> "#unsupported_by_activity_url/" <> to_string(module_name)
+    IO.inspect(type_unknown_by_object_url: module_name)
+    "/+++" <> Map.get(activity, :id) <> "#type_unknown_by_object_url/" <> to_string(module_name)
   end
 
   def object_url(%{id: id} = activity) do
-    IO.inspect(unsupported_by_activity_url: activity)
-    "/+++" <> id <> "#unsupported_by_activity_url"
+    IO.inspect(unrecognised_by_object_url: activity)
+    "/+++" <> id <> "#type_unknown_by_object_url"
+  end
+
+  def object_url(id) when is_binary(id) do
+    CommonsPub.Meta.Pointers.get(id) |> object_url()
   end
 
   def object_url(activity) do
-    IO.inspect(unsupported_by_activity_url: activity)
-    "/#unsupported_by_activity_url"
+    IO.inspect(unsupported_by_object_url: activity)
+    "/404#unsupported_by_object_url"
   end
 
   def e_actor_field(obj, field, fallback) do

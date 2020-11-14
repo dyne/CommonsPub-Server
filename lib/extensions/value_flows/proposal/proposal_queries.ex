@@ -47,24 +47,6 @@ defmodule ValueFlows.Proposal.Queries do
     join(q, jq, [proposal: c], g in assoc(c, :eligible_location), as: :geolocation)
   end
 
-  # def join_to(q, :tags, jq) do
-  #  join(q, jq, [proposal: c], t in assoc(c, :tags), as: :tags)
-  # end
-
-  # def join_to(q, :provider, jq) do
-  #   join q, jq, [follow: f], c in assoc(f, :provider), as: :pointer
-  # end
-
-  # def join_to(q, :receiver, jq) do
-  #   join q, jq, [follow: f], c in assoc(f, :receiver), as: :pointer
-  # end
-
-  # def join_to(q, :follower_count, jq) do
-  #   join q, jq, [proposal: c],
-  #     f in FollowerCount, on: c.id == f.context_id,
-  #     as: :follower_count
-  # end
-
   ### filter/2
 
   ## by many
@@ -110,24 +92,6 @@ defmodule ValueFlows.Proposal.Queries do
   end
 
   ## by field values
-
-  def filter(q, {:cursor, [count, id]})
-      when is_integer(count) and is_binary(id) do
-    where(
-      q,
-      [proposal: c, follower_count: fc],
-      (fc.count == ^count and c.id >= ^id) or fc.count > ^count
-    )
-  end
-
-  def filter(q, {:cursor, [count, id]})
-      when is_integer(count) and is_binary(id) do
-    where(
-      q,
-      [proposal: c, follower_count: fc],
-      (fc.count == ^count and c.id <= ^id) or fc.count < ^count
-    )
-  end
 
   def filter(q, {:id, id}) when is_binary(id) do
     where(q, [proposal: c], c.id == ^id)
@@ -198,59 +162,4 @@ defmodule ValueFlows.Proposal.Queries do
     select(q, [proposal: c], {field(c, ^key), count(c.id)})
   end
 
-  # pagination
-
-  def filter(q, {:limit, limit}) do
-    limit(q, ^limit)
-  end
-
-  def filter(q, {:paginate_id, %{after: a, limit: limit}}) do
-    limit = limit + 2
-
-    q
-    |> where([proposal: c], c.id >= ^a)
-    |> limit(^limit)
-  end
-
-  def filter(q, {:paginate_id, %{before: b, limit: limit}}) do
-    q
-    |> where([proposal: c], c.id <= ^b)
-    |> filter(limit: limit + 2)
-  end
-
-  def filter(q, {:paginate_id, %{limit: limit}}) do
-    filter(q, limit: limit + 1)
-  end
-
-  def filter(q, {:preload, :provider}) do
-    preload(q, [pointer: p], provider: p)
-  end
-
-  def filter(q, {:preload, :receiver}) do
-    preload(q, [pointer: p], receiver: p)
-  end
-
-  def filter(q, {:preload, :eligible_location}) do
-    preload(q, [eligible_location: l], eligible_location: l)
-  end
-
-  # def filter(q, {:page, [desc: [followers: page_opts]]}) do
-  #   q
-  #   |> filter(join: :follower_count, order: [desc: :followers])
-  #   |> page(page_opts, [desc: :followers])
-  #   |> select(
-  #     [proposal: c,  follower_count: fc],
-  #     %{c | follower_count: coalesce(fc.count, 0)}
-  #   )
-  # end
-
-  # defp page(q, %{after: cursor, limit: limit}, [desc: :followers]) do
-  #   filter q, cursor: [followers: {:lte, cursor}], limit: limit + 2
-  # end
-
-  # defp page(q, %{before: cursor, limit: limit}, [desc: :followers]) do
-  #   filter q, cursor: [followers: {:gte, cursor}], limit: limit + 2
-  # end
-
-  # defp page(q, %{limit: limit}, _), do: filter(q, limit: limit + 1)
 end

@@ -19,10 +19,13 @@ defmodule CommonsPub.Profiles.Profile do
   mixin_schema do
     field(:name, :string)
     field(:summary, :string)
+
     field(:extra_info, :map)
 
     belongs_to(:icon, Content)
     belongs_to(:image, Content)
+
+    belongs_to(:geolocation, Geolocation)
 
     # belongs_to(:primary_language, Language)
 
@@ -60,6 +63,7 @@ defmodule CommonsPub.Profiles.Profile do
     |> Changeset.validate_required(@required)
     |> Changeset.change(
       creator_id: creator.id,
+      geolocation_id: CommonsPub.Common.attr_get_id(attrs, :geolocation), # TODO: validate location
       is_public: true
     )
     |> common_changeset()

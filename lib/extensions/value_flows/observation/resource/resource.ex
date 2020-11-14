@@ -14,7 +14,7 @@ defmodule ValueFlows.Observation.EconomicResource do
 
   alias ValueFlows.Knowledge.Action
   alias ValueFlows.Knowledge.ResourceSpecification
-  alias ValueFlows.Knowledge.ProcessSpecification
+  # alias ValueFlows.Knowledge.ProcessSpecification
 
   alias ValueFlows.Observation.EconomicResource
 
@@ -70,7 +70,8 @@ defmodule ValueFlows.Observation.EconomicResource do
   end
 
   @required ~w(name is_public)a
-  @cast @required ++ ~w(note tracking_identifier current_location_id is_disabled image_id)a
+  @cast @required ++ ~w(note tracking_identifier current_location_id is_disabled image_id)a ++
+    ~w(primary_accountable_id state_id contained_in_id unit_of_effort_id conforms_to_id current_location_id)a
 
   def create_changeset(
         %User{} = creator,
@@ -83,61 +84,13 @@ defmodule ValueFlows.Observation.EconomicResource do
       creator_id: creator.id,
       is_public: true
     )
-    |> common_changeset()
+    |> common_changeset(attrs)
   end
 
   def update_changeset(%EconomicResource{} = resource, attrs) do
     resource
     |> Changeset.cast(attrs, @cast)
-    |> common_changeset()
-  end
-
-  def change_primary_accountable(changeset, %{id: _} = primary_accountable) do
-    Changeset.change(changeset,
-      primary_accountable: primary_accountable,
-      primary_accountable_id: primary_accountable.id
-    )
-  end
-
-  def change_state_action(changeset, %Action{} = state) do
-    Changeset.change(changeset,
-      state_id: state.id
-    )
-  end
-
-  def change_stage_process_spec(changeset, %ProcessSpecification{} = stage) do
-    Changeset.change(changeset,
-      stage: stage,
-      stage: stage.id
-    )
-  end
-
-  def change_current_location(changeset, %Geolocation{} = location) do
-    Changeset.change(changeset,
-      current_location: location,
-      current_location_id: location.id
-    )
-  end
-
-  def change_conforms_to_resource_spec(changeset, %ResourceSpecification{} = conforms_to) do
-    Changeset.change(changeset,
-      conforms_to: conforms_to,
-      conforms_to_id: conforms_to.id
-    )
-  end
-
-  def change_contained_in_resource(changeset, %EconomicResource{} = contained_in) do
-    Changeset.change(changeset,
-      contained_in: contained_in,
-      contained_in_id: contained_in.id
-    )
-  end
-
-  def change_unit_of_effort(changeset, %Unit{} = unit_of_effort) do
-    Changeset.change(changeset,
-      unit_of_effort: unit_of_effort,
-      unit_of_effort_id: unit_of_effort.id
-    )
+    |> common_changeset(attrs)
   end
 
   def change_measures(changeset, %{} = attrs) do
@@ -152,8 +105,9 @@ defmodule ValueFlows.Observation.EconomicResource do
     [:onhand_quantity, :accounting_quantity]
   end
 
-  defp common_changeset(changeset) do
+  defp common_changeset(changeset, attrs) do
     changeset
+    |> change_measures(attrs)
     |> change_public()
     |> change_disabled()
   end

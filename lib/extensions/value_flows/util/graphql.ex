@@ -21,8 +21,17 @@ defmodule ValueFlows.Util.GraphQL do
   def serialize_cool_scalar(%{value: value}), do: value
   def serialize_cool_scalar(value), do: value
 
+  @doc "Returns the canonical url for a character"
+  def canonical_url_edge(obj, _, _),
+    do: {:ok, CommonsPub.ActivityPub.Utils.get_object_canonical_url(obj)}
+
+  def scope_edge(%{context_id: id}, page_opts, info),
+    do: CommonsPub.Web.GraphQL.CommonResolver.context_edges(%{context_ids: [id]}, page_opts, info)
+
+  def scope_edge(_, _, _),
+    do: {:ok, nil}
+
   def fetch_provider_edge(%{provider_id: id}, _, info) when not is_nil(id) do
-    # CommonResolver.context_edge(%{context_id: id}, nil, info)
     {:ok, ValueFlows.Agent.Agents.agent(id, GraphQL.current_user(info))}
   end
 
@@ -31,7 +40,6 @@ defmodule ValueFlows.Util.GraphQL do
   end
 
   def fetch_receiver_edge(%{receiver_id: id}, _, info) when not is_nil(id) do
-    # CommonResolver.context_edge(%{context_id: id}, nil, info)
     {:ok, ValueFlows.Agent.Agents.agent(id, GraphQL.current_user(info))}
   end
 
@@ -64,6 +72,44 @@ defmodule ValueFlows.Util.GraphQL do
   end
 
   def at_location_edge(_, _, _) do
+    {:ok, nil}
+  end
+
+  def fetch_resource_conforms_to_edge(%{resource_conforms_to_id: id} = thing, _, _)
+      when is_binary(id) do
+    thing = Repo.preload(thing, :resource_conforms_to)
+    {:ok, Map.get(thing, :resource_conforms_to)}
+  end
+
+  def fetch_resource_conforms_to_edge(_, _, _) do
+    {:ok, nil}
+  end
+
+
+  def available_quantity_edge(%{available_quantity_id: id} = thing, _, _) when not is_nil(id) do
+    thing = Repo.preload(thing, available_quantity: [:unit])
+    {:ok, Map.get(thing, :available_quantity)}
+  end
+
+  def available_quantity_edge(_, _, _) do
+    {:ok, nil}
+  end
+
+  def resource_quantity_edge(%{resource_quantity_id: id} = thing, _, _) when not is_nil(id) do
+    thing = Repo.preload(thing, resource_quantity: [:unit])
+    {:ok, Map.get(thing, :resource_quantity)}
+  end
+
+  def resource_quantity_edge(_, _, _) do
+    {:ok, nil}
+  end
+
+  def effort_quantity_edge(%{effort_quantity_id: id} = thing, _, _) when not is_nil(id) do
+    thing = Repo.preload(thing, effort_quantity: [:unit])
+    {:ok, Map.get(thing, :effort_quantity)}
+  end
+
+  def effort_quantity_edge(_, _, _) do
     {:ok, nil}
   end
 

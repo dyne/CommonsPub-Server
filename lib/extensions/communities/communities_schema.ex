@@ -87,6 +87,11 @@ defmodule CommonsPub.Web.GraphQL.CommunitiesSchema do
       resolve(&UploadResolver.image_content_edge/3)
     end
 
+    @desc "The parentccommunity or other context the community belongs to"
+    field :context, :any_context do
+      resolve(&CommonResolver.context_edge/3)
+    end
+
     @desc "A JSON document containing more info beyond the default fields"
     field(:extra_info, :json)
 

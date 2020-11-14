@@ -118,7 +118,7 @@ defmodule CommonsPub.Activities.Web.ActivitiesHelper do
   end
 
   def prepare(%{:__struct__ => _} = activity, current_user) do
-    activity = maybe_preload(activity, [:creator, :context])
+    activity = CommonsPub.Repo.maybe_preload(activity, [:creator, :context])
 
     prepare_activity(activity, current_user)
   end
@@ -129,21 +129,21 @@ defmodule CommonsPub.Activities.Web.ActivitiesHelper do
 
   defp prepare_parent_context(%{context: %{thread_id: thread_id} = _context} = activity)
        when not is_nil(thread_id) do
-    activity = maybe_preload(activity, context: [:thread])
+    activity = CommonsPub.Repo.maybe_preload(activity, context: [:thread])
 
     activity
     |> Map.merge(%{
       context:
         Map.merge(
           activity.context,
-          %{context: prepare_context(activity.context.thread)}
+          %{context: CommonsPub.Contexts.prepare_context(activity.context.thread)}
         )
     })
   end
 
   defp prepare_parent_context(%{context: %{} = context} = activity) do
     activity
-    |> Map.merge(%{context: prepare_context(context)})
+    |> Map.merge(%{context: CommonsPub.Contexts.prepare_context(context)})
   end
 
   defp prepare_parent_context(activity) do
@@ -152,7 +152,7 @@ defmodule CommonsPub.Activities.Web.ActivitiesHelper do
 
   defp prepare_activity(activity, _current_user) do
     # guess what type of thing we're dealing with
-    activity = prepare_context(activity)
+    activity = CommonsPub.Contexts.prepare_context(activity)
 
     activity = prepare_parent_context(activity)
 
@@ -189,7 +189,7 @@ defmodule CommonsPub.Activities.Web.ActivitiesHelper do
           context: %Ecto.Association.NotLoaded{}
         } = activity
       ) do
-    activity = maybe_preload(activity, :context)
+    activity = CommonsPub.Repo.maybe_preload(activity, :context)
     activity_url(activity)
   end
 

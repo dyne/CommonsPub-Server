@@ -12,8 +12,7 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       thread = fake_thread!(actor, commented_actor)
       comment = fake_comment!(actor, thread)
 
-      assert {:ok, activity} = Publisher.comment(comment)
-      # IO.inspect(activity)
+      assert {:ok, activity} = Publisher.publish("create", comment)
       assert activity.object.pointer_id == comment.id
       assert activity.local == true
       assert activity.object.local == true
@@ -31,7 +30,7 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       thread = fake_thread!(actor, commented_actor, %{is_local: true})
       comment = fake_comment!(actor, thread)
       # Publish the comment first so we can reply to it
-      Publisher.comment(comment)
+      Publisher.publish("create", comment)
 
       {:ok, reply} =
         CommonsPub.Threads.Comments.create_reply(reply_actor, thread, comment, %{
@@ -39,7 +38,7 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
           is_local: true
         })
 
-      assert {:ok, activity} = Publisher.comment(reply)
+      assert {:ok, activity} = Publisher.publish("create", reply)
       assert activity.object.data["inReplyTo"]
       assert activity.data["actor"] not in activity.object.data["to"]
       assert length(activity.object.data["to"]) == 3
@@ -51,9 +50,9 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       thread = fake_thread!(actor, commented_actor, %{is_local: true})
       comment = fake_comment!(actor, thread)
       # Publish the comment first so we can delete it
-      Publisher.comment(comment)
+      Publisher.publish("create", comment)
 
-      assert {:ok, activity} = Publisher.delete_comment_or_resource(comment)
+      assert {:ok, activity} = Publisher.publish("delete", comment)
     end
   end
 
@@ -64,7 +63,7 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       collection = fake_collection!(actor, community)
       resource = fake_resource!(actor, collection)
 
-      assert {:ok, activity} = Publisher.create_resource(resource)
+      assert {:ok, activity} = Publisher.publish("create", resource)
       assert activity.object.pointer_id == resource.id
       assert activity.local == true
       assert activity.object.local == true
@@ -81,9 +80,9 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       community = fake_community!(actor)
       collection = fake_collection!(actor, community)
       resource = fake_resource!(actor, collection)
-      Publisher.create_resource(resource)
+      Publisher.publish("create", resource)
 
-      assert {:ok, activity} = Publisher.delete_comment_or_resource(resource)
+      assert {:ok, activity} = Publisher.publish("delete", resource)
     end
   end
 
@@ -92,7 +91,7 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       actor = fake_user!()
       community = fake_community!(actor)
 
-      assert {:ok, activity} = Publisher.create_community(community)
+      assert {:ok, activity} = Publisher.publish("create", community)
       assert activity.data["object"]["type"] == "Group"
       assert activity.data["object"]["id"]
       {:ok, community} = CommonsPub.Communities.one([:default, id: community.id])
@@ -125,7 +124,7 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
           is_local: true
         })
 
-      assert {:ok, activity} = Publisher.follow(follow)
+      assert {:ok, activity} = Publisher.publish("create", follow)
       assert activity.data["to"] == [ap_followed.ap_id]
     end
 
@@ -141,10 +140,10 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
           is_local: true
         })
 
-      {:ok, follow_activity} = Publisher.follow(follow)
-      {:ok, unfollow} = Follows.soft_delete(follower, follow)
+      {:ok, follow_activity} = Publisher.publish("create", follow)
+      {:ok, unfollowed} = Follows.soft_delete(follower, follow)
 
-      assert {:ok, unfollow_activity} = Publisher.unfollow(unfollow)
+      assert {:ok, unfollow_activity} = Publisher.publish("delete", unfollowed)
       assert unfollow_activity.data["object"]["id"] == follow_activity.data["id"]
     end
 
@@ -160,7 +159,7 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
           is_local: true
         })
 
-      assert {:error, "account is private"} = Publisher.follow(follow)
+      assert {:error, "account is private"} = Publisher.publish("create", follow)
     end
   end
 
@@ -178,7 +177,7 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
           is_local: true
         })
 
-      assert {:ok, activity} = Publisher.block(block)
+      assert {:ok, activity} = Publisher.publish("create", block)
       assert activity.data["to"] == [ap_blocked.ap_id]
     end
 
@@ -195,10 +194,10 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
           is_local: true
         })
 
-      {:ok, block_activity} = Publisher.block(block)
+      {:ok, block_activity} = Publisher.publish("create", block)
       {:ok, unblock} = CommonsPub.Blocks.soft_delete(blocker, block)
 
-      assert {:ok, unblock_activity} = Publisher.unblock(unblock)
+      assert {:ok, unblock_activity} = Publisher.publish("delete", unblock)
       assert unblock_activity.data["object"]["id"] == block_activity.data["id"]
     end
   end
@@ -211,11 +210,11 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
 
       {:ok, flag} =
         CommonsPub.Flags.create(flagger, flagged, %{
-          message: "blocked AND reported!!!",
+          message: "this is not cool",
           is_local: true
         })
 
-      assert {:ok, activity} = Publisher.flag(flag)
+      assert {:ok, activity} = Publisher.publish("create", flag)
     end
 
     test "it flags a community" do
@@ -225,11 +224,11 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
 
       {:ok, flag} =
         CommonsPub.Flags.create(flagger, flagged, %{
-          message: "blocked AND reported!!!",
+          message: "this is not cool",
           is_local: true
         })
 
-      assert {:ok, activity} = Publisher.flag(flag)
+      assert {:ok, activity} = Publisher.publish("create", flag)
     end
 
     test "it flags a collection" do
@@ -239,11 +238,11 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
 
       {:ok, flag} =
         CommonsPub.Flags.create(flagger, flagged, %{
-          message: "blocked AND reported!!!",
+          message: "this is not cool",
           is_local: true
         })
 
-      assert {:ok, activity} = Publisher.flag(flag)
+      assert {:ok, activity} = Publisher.publish("create", flag)
     end
 
     test "it flags a comment" do
@@ -252,15 +251,15 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       thread = fake_thread!(actor, commented_actor)
       comment = fake_comment!(actor, thread)
       # Comment needs to be published before the flag can be federated
-      Publisher.comment(comment)
+      Publisher.publish("create", comment)
 
       {:ok, flag} =
         CommonsPub.Flags.create(commented_actor, comment, %{
-          message: "blocked AND reported!!!",
+          message: "this is not cool",
           is_local: true
         })
 
-      assert {:ok, activity} = Publisher.flag(flag)
+      assert {:ok, activity} = Publisher.publish("create", flag)
     end
 
     test "it flags a resource" do
@@ -269,15 +268,15 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       collection = fake_collection!(actor, community)
       resource = fake_resource!(actor, collection)
       flag_actor = fake_user!()
-      Publisher.create_resource(resource)
+      Publisher.publish("create", resource)
 
       {:ok, flag} =
         CommonsPub.Flags.create(flag_actor, resource, %{
-          message: "blocked AND reported!!!",
+          message: "this is not cool",
           is_local: true
         })
 
-      assert {:ok, activity} = Publisher.flag(flag)
+      assert {:ok, activity} = Publisher.publish("create", flag)
     end
   end
 
@@ -288,12 +287,12 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       thread = fake_thread!(actor, commented_actor)
       comment = fake_comment!(actor, thread)
       # Comment needs to be published before it can be liked
-      Publisher.comment(comment)
+      Publisher.publish("create", comment)
 
       {:ok, like} =
         CommonsPub.Likes.create(commented_actor, comment, %{is_public: true, is_local: true})
 
-      assert {:ok, like_activity, object} = Publisher.like(like)
+      assert {:ok, like_activity, object} = Publisher.publish("create", like)
       assert like_activity.data["object"] == object.data["id"]
     end
 
@@ -303,14 +302,14 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
       thread = fake_thread!(actor, commented_actor)
       comment = fake_comment!(actor, thread)
       # Comment needs to be published before it can be liked
-      Publisher.comment(comment)
+      Publisher.publish("create", comment)
 
       {:ok, like} =
         CommonsPub.Likes.create(commented_actor, comment, %{is_public: true, is_local: true})
 
-      Publisher.like(like)
+      Publisher.publish("create", like)
       # No context function for unliking
-      assert {:ok, unlike_activity, like_activity, object} = Publisher.unlike(like)
+      assert {:ok, unlike_activity, like_activity, object} = Publisher.publish("delete", like)
       assert like_activity.data["object"] == object.data["id"]
       assert unlike_activity.data["object"] == like_activity.data
     end
@@ -319,38 +318,38 @@ defmodule CommonsPub.ActivityPub.PublisherTest do
   describe "updating actors" do
     test "it works for users" do
       actor = fake_user!()
-      assert {:ok, activity} = Publisher.update_character(actor)
+      assert {:ok, activity} = Publisher.publish("update", actor)
     end
 
     test "it works for communities" do
       actor = fake_user!() |> fake_community!()
-      assert {:ok, activity} = Publisher.update_character(actor)
+      assert {:ok, activity} = Publisher.publish("update", actor)
     end
 
     test "it works for collections" do
       user = fake_user!()
       comm = fake_community!(user)
       actor = fake_collection!(user, comm)
-      assert {:ok, activity} = Publisher.update_character(actor)
+      assert {:ok, activity} = Publisher.publish("update", actor)
     end
   end
 
   describe "deleting actors" do
     test "it works for users" do
       actor = fake_user!()
-      assert {:ok, activity} = Publisher.delete_user(actor)
+      assert {:ok, activity} = Publisher.publish("delete", actor)
     end
 
     test "it works for communities" do
       actor = fake_user!() |> fake_community!()
-      assert {:ok, activity} = Publisher.delete_character(actor)
+      assert {:ok, activity} = Publisher.publish("delete", actor)
     end
 
     test "it works for collections" do
       user = fake_user!()
       comm = fake_community!(user)
       actor = fake_collection!(user, comm)
-      assert {:ok, activity} = Publisher.delete_character(actor)
+      assert {:ok, activity} = Publisher.publish("delete", actor)
     end
   end
 end

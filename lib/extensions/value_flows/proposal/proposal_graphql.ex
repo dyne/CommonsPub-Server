@@ -1,41 +1,19 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Proposal.GraphQL do
-  # alias CommonsPub.Web.GraphQL.{CommonResolver}
-  require Logger
-  # import ValueFlows.Util, only: [maybe_put: 3]
+  # default to 100 km radius
+  @radius_default_distance 100_000
 
-  alias CommonsPub.{
-    # Activities,
-    # Communities,
-    GraphQL,
-    Repo
-    # User
-  }
+  require Logger
+
+  alias CommonsPub.{GraphQL, Repo}
 
   alias CommonsPub.GraphQL.{
     ResolveField,
-    # ResolveFields,
-    # ResolvePage,
-    # ResolvePages,
     ResolveRootPage,
     FetchPage
-    # FetchPages,
-    # CommonResolver
   }
 
-  # alias CommonsPub.Resources.Resource
-  # alias CommonsPub.Common.Enums
-  alias CommonsPub.Meta.Pointers
-  # alias CommonsPub.Communities.Community
-  # alias CommonsPub.Web.GraphQL.CommunitiesResolver
-
-  # alias ValueFlows.Proposal
   alias ValueFlows.Proposal.Proposals
-  # alias ValueFlows.Proposal.Queries
-  # alias CommonsPub.Web.GraphQL.CommonResolver
-
-  # use Absinthe.Schema.Notation
-  # import_sdl path: "lib/value_flows/graphql/schemas/proposal.gql"
 
   ## resolvers
 
@@ -92,6 +70,7 @@ defmodule ValueFlows.Proposal.GraphQL do
       queries: ValueFlows.Proposal.Queries,
       query: ValueFlows.Proposal,
       page_opts: page_opts,
+      cursor_fn:  & &1.id,
       base_filters: [
         :default,
         # preload: [:provider, :receiver, :tags],
@@ -122,7 +101,12 @@ defmodule ValueFlows.Proposal.GraphQL do
   end
 
   defp proposals_filter(%{at_location: at_location_id} = page_opts, filters_acc) do
-    proposals_filter_next(:at_location, [eligible_location_id: at_location_id], page_opts, filters_acc)
+    proposals_filter_next(
+      :at_location,
+      [eligible_location_id: at_location_id],
+      page_opts,
+      filters_acc
+    )
   end
 
   defp proposals_filter(
@@ -235,62 +219,19 @@ defmodule ValueFlows.Proposal.GraphQL do
     proposals_filter_next([param_remove], filter_add, page_opts, filters_acc)
   end
 
-  def create_proposal(%{proposal: %{in_scope_of: context_ids} = attrs}, info)
-      when is_list(context_ids) do
-    # FIXME: support multiple contexts?
-    context_id = List.first(context_ids)
-
-    Repo.transact_with(fn ->
-      do_create(attrs, info, fn user, attrs ->
-        with {:ok, pointer} <- Pointers.one(id: context_id) do
-          context = Pointers.follow!(pointer)
-          Proposals.create(user, context, attrs)
-        end
-      end)
-    end)
-  end
-
-  # FIXME: duplication!
   def create_proposal(%{proposal: attrs}, info) do
-    Repo.transact_with(fn ->
-      do_create(attrs, info, &Proposals.create/2)
-    end)
-  end
-
-  defp do_create(%{} = attrs, info, create_fn) do
     with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
          proposal_attrs = Map.merge(attrs, %{is_public: true}),
-         {:ok, proposal} <- create_fn.(user, proposal_attrs) do
+         {:ok, proposal} <- Proposals.create(user, proposal_attrs) do
       {:ok, %{proposal: proposal}}
     end
   end
 
-  def update_proposal(%{proposal: %{in_scope_of: context_ids} = changes}, info) do
-    context_id = List.first(context_ids)
-
-    Repo.transact_with(fn ->
-      do_update(changes, info, fn proposal, changes ->
-        with {:ok, pointer} <- Pointers.one(id: context_id) do
-          context = Pointers.follow!(pointer)
-          Proposals.update(proposal, context, changes)
-        end
-      end)
-    end)
-  end
-
-  def update_proposal(%{proposal: changes}, info) do
-    Repo.transact_with(fn ->
-      do_update(changes, info, fn proposal, changes ->
-        Proposals.update(proposal, changes)
-      end)
-    end)
-  end
-
-  defp do_update(%{id: id} = changes, info, update_fn) do
+  def update_proposal(%{proposal: %{id: id} = changes}, info) do
     with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
          {:ok, proposal} <- proposal(%{id: id}, info),
          :ok <- ensure_update_permission(user, proposal),
-         {:ok, proposal} <- update_fn.(proposal, changes) do
+         {:ok, proposal} <- Proposals.update(proposal, changes) do
       {:ok, %{proposal: proposal}}
     end
   end

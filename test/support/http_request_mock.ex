@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
-defmodule HttpRequestMock do
+defmodule CommonsPub.HttpRequestMock do
   require Logger
 
   def request(
@@ -97,7 +97,7 @@ defmodule HttpRequestMock do
 
   def get(url, query, body, headers) do
     {:error,
-     "Not implemented the mock response for get #{inspect(url)}, #{query}, #{inspect(body)}, #{
+     "Not implemented the mock response for get #{inspect(url, pretty: true)}, #{query}, #{inspect(body, pretty: true)}, #{
        inspect(headers)
      }"}
   end

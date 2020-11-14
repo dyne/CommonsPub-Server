@@ -13,7 +13,7 @@ defmodule CommonsPub.Web.Component.CategoryPreviewLive do
     # object = prepare_common(assigns.object)
 
     object =
-      maybe_preload(assigns.object, [
+      CommonsPub.Repo.maybe_preload(assigns.object, [
         :profile,
         :character,
         parent_category: [:profile, :character, parent_category: [:profile, :character]]

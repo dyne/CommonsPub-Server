@@ -3,7 +3,6 @@ defmodule CommonsPub.Tag.Simulate do
   @moduledoc false
 
   import CommonsPub.Utils.Simulation
-  import CommonsPub.Utils.Trendy
 
   alias CommonsPub.Tag.Categories
 

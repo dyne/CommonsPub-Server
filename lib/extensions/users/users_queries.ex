@@ -17,6 +17,9 @@ defmodule CommonsPub.Users.Queries do
   defp join_to(q, :local_user, jq),
     do: join(q, jq, [user: u], assoc(u, :local_user), as: :local_user)
 
+  defp join_to(q, :geolocation, jq),
+    do: join(q, jq, [user: u], assoc(u, :geolocation), as: :geolocation)
+
   defp join_to(q, {:follow, follower_id}, jq) do
     join(q, jq, [user: u], f in Follow,
       as: :follow,
@@ -37,6 +40,9 @@ defmodule CommonsPub.Users.Queries do
   def filter(query, filter_or_filters)
 
   def filter(q, filters) when is_list(filters), do: Enum.reduce(filters, q, &filter(&2, &1))
+
+  def filter(q, :geolocation),
+    do: filter(q, join: :geolocation, preload: :geolocation)
 
   def filter(q, :default),
     do: filter(q, deleted: false, join: :character, join: :local_user, preload: :all)
@@ -119,8 +125,13 @@ defmodule CommonsPub.Users.Queries do
   def filter(q, {:order, [desc: :created]}), do: order_by(q, [user: u], desc: u.id)
 
   def filter(q, {:preload, :all}),
-    do: preload(q, [character: a, local_user: u], character: a, local_user: u)
+    do:
+      preload(q, [character: a, local_user: u],
+        character: a,
+        local_user: u
+      )
 
+  def filter(q, {:preload, :geolocation}), do: preload(q, [geolocation: a], geolocation: a)
   def filter(q, {:preload, :character}), do: preload(q, [character: a], character: a)
   def filter(q, {:preload, :local_user}), do: preload(q, [local_user: u], local_user: u)
 

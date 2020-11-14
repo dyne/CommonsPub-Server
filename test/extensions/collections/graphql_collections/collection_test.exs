@@ -140,7 +140,7 @@ defmodule CommonsPub.Web.GraphQL.Collections.CollectionTest do
     end
   end
 
-  describe "collection.community" do
+  describe "collection.context" do
     test "works for anyone" do
       [alice, bob, eve] = some_fake_users!(3)
       lucy = fake_admin!()
@@ -183,7 +183,7 @@ defmodule CommonsPub.Web.GraphQL.Collections.CollectionTest do
 
         child_page_test(%{
           query: query,
-          vars: %{collection_id: coll.id},
+          vars: %{context_id: coll.id},
           connection: conn,
           parent_key: :collection,
           child_key: :resources,

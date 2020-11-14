@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Observation.EconomicResource.Queries do
-  alias ValueFlows.Observation.EconomicResource
+  alias ValueFlows.Observation.{EconomicResource, EconomicEvent}
   # alias ValueFlows.Observation.EconomicResources
   alias CommonsPub.Follows.{Follow}
   alias CommonsPub.Users.User
@@ -42,12 +42,36 @@ defmodule ValueFlows.Observation.EconomicResource.Queries do
     )
   end
 
+  def join_to(q, {:event_output, output_of_id}, _jq) do
+    join(q, :inner, [resource: r],
+      e in EconomicEvent,
+      as: :event,
+      on: e.resource_inventoried_as_id == r.id and e.output_of_id == ^output_of_id
+    )
+  end
+
+  def join_to(q, {:event_input, input_of_id}, _jq) do
+    join(q, :inner, [resource: r],
+      e in EconomicEvent,
+      as: :event,
+      on: e.resource_inventoried_as_id == r.id and e.input_of_id == ^input_of_id
+    )
+  end
+
   def join_to(q, :geolocation, jq) do
     join(q, jq, [resource: c], g in assoc(c, :current_location), as: :geolocation)
   end
 
   def join_to(q, :tags, jq) do
     join(q, jq, [resource: c], t in assoc(c, :tags), as: :tags)
+  end
+
+  def join_to(q, :unit_of_effort, jq) do
+    join(q, jq, [resource: c], t in assoc(c, :unit_of_effort), as: :unit_of_effort)
+  end
+
+  def join_to(q, :contained_in, jq) do
+    join(q, jq, [resource: c], t in assoc(c, :contained_in), as: :contained_in)
   end
 
   # def join_to(q, :primary_accountable, jq) do
@@ -76,7 +100,12 @@ defmodule ValueFlows.Observation.EconomicResource.Queries do
 
   def filter(q, :default) do
     #filter(q, [:deleted])
-    filter q, [:deleted, {:preload, :primary_accountable}]
+    filter q, [
+      :deleted,
+      # FIXME: use hydration
+      # preload: :primary_accountable,
+      # preload: :unit_of_effort,
+    ]
   end
 
   def filter(q, :offer) do
@@ -263,6 +292,19 @@ defmodule ValueFlows.Observation.EconomicResource.Queries do
     select(q, [resource: c], {field(c, ^key), count(c.id)})
   end
 
+  def filter(q, {:preload, :all}) do
+    preload(q, [
+      :accounting_quantity,
+      :onhand_quantity,
+      :unit_of_effort,
+      :primary_accountable,
+      :current_location,
+      :contained_in,
+      :conforms_to,
+      :image
+    ])
+  end
+
   def filter(q, {:preload, :primary_accountable}) do
     preload(q, :primary_accountable)
   end
@@ -271,12 +313,24 @@ defmodule ValueFlows.Observation.EconomicResource.Queries do
     preload(q, [pointer: p], receiver: p)
   end
 
+  def filter(q, {:preload, :unit_of_effort}) do
+    q
+    |> join_to(:unit_of_effort)
+    |> preload([unit_of_effort: u], unit_of_effort: u)
+  end
+
   def filter(q, {:preload, :current_location}) do
     q
     |> join_to(:geolocation)
     |> preload(:current_location)
 
     # preload(q, [geolocation: g], current_location: g)
+  end
+
+  def filter(q, {:preload, :contained_in}) do
+    q
+    |> join_to(:contained_in)
+    |> preload([contained_in: cin], contained_in: cin)
   end
 
   # pagination

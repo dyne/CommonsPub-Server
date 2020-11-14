@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Observation.Process.GraphQL do
   require Logger
-  # import ValueFlows.Util, only: [maybe_put: 3]
 
   alias CommonsPub.{
     # Activities,
@@ -72,8 +71,26 @@ defmodule ValueFlows.Observation.Process.GraphQL do
     Processes.many([:default])
   end
 
+  def track(process, _, info) do
+    ResolveField.run(%ResolveField{
+      module: __MODULE__,
+      fetcher: :fetch_track_process,
+      context: process,
+      info: info
+    })
+  end
+
+  def trace(process, _, info) do
+    ResolveField.run(%ResolveField{
+      module: __MODULE__,
+      fetcher: :fetch_trace_process,
+      context: process,
+      info: info
+    })
+  end
+
   def processes_filtered(page_opts, _ \\ nil) do
-    IO.inspect(processes_filtered: page_opts)
+    # IO.inspect(processes_filtered: page_opts)
     processes_filter(page_opts, [])
   end
 
@@ -100,7 +117,7 @@ defmodule ValueFlows.Observation.Process.GraphQL do
          _,
          filters_acc
        ) do
-    IO.inspect(filters_query: filters_acc)
+    # IO.inspect(filters_query: filters_acc)
 
     # finally, if there's no more known params to acumulate, query with the filters
     Processes.many(filters_acc)
@@ -108,8 +125,8 @@ defmodule ValueFlows.Observation.Process.GraphQL do
 
   defp processes_filter_next(param_remove, filter_add, page_opts, filters_acc)
        when is_list(param_remove) and is_list(filter_add) do
-    IO.inspect(processes_filter_next: param_remove)
-    IO.inspect(processes_filter_add: filter_add)
+    # IO.inspect(processes_filter_next: param_remove)
+    # IO.inspect(processes_filter_add: filter_add)
 
     processes_filter(Map.drop(page_opts, param_remove), filters_acc ++ filter_add)
   end
@@ -124,11 +141,11 @@ defmodule ValueFlows.Observation.Process.GraphQL do
     processes_filter_next([param_remove], filter_add, page_opts, filters_acc)
   end
 
-  def track(process, _, _) do
+  def fetch_track_process(_, process) do
     Processes.track(process)
   end
 
-  def trace(process, _, _) do
+  def fetch_trace_process(_, process) do
     Processes.trace(process)
   end
 
@@ -159,8 +176,12 @@ defmodule ValueFlows.Observation.Process.GraphQL do
     ])
   end
 
-  def creator_processes(%{id: creator}, %{} = page_opts, info) do
+  def creator_processes(%{id: creator}, _page_opts, _info) do
     processes_filtered(%{agent: creator})
+  end
+
+  def creator_processes(_, _page_opts, _info) do
+    {:ok, nil}
   end
 
   def creator_processes_edge(%{creator: creator}, %{} = page_opts, info) do
@@ -186,6 +207,16 @@ defmodule ValueFlows.Observation.Process.GraphQL do
     )
   end
 
+  def fetch_based_on_edge(%{based_on_id: id} = thing, _, _)
+      when is_binary(id) do
+    thing = Repo.preload(thing, :based_on)
+    {:ok, Map.get(thing, :based_on)}
+  end
+
+  def fetch_based_on_edge(_, _, _) do
+    {:ok, nil}
+  end
+
   def list_processes(page_opts, base_filters, _data_filters, _cursor_type) do
     FetchPage.run(%FetchPage{
       queries: Queries,
@@ -204,6 +235,7 @@ defmodule ValueFlows.Observation.Process.GraphQL do
       # preload: [:provider, :receiver, :tags],
       # cursor_fn: Processes.cursor(:followers),
       page_opts: page_opts,
+      cursor_fn: & &1.id,
       base_filters: [
         :default,
         # preload: [:provider, :receiver, :tags],
@@ -213,7 +245,6 @@ defmodule ValueFlows.Observation.Process.GraphQL do
     })
   end
 
-  # FIXME: duplication!
   def create_process(%{process: process_attrs}, info) do
     Repo.transact_with(fn ->
       with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
@@ -226,21 +257,13 @@ defmodule ValueFlows.Observation.Process.GraphQL do
     end)
   end
 
-  def update_process(%{process: changes}, info) do
-    Repo.transact_with(fn ->
-      do_update(changes, info, fn process, changes ->
-        Processes.update(process, changes)
-      end)
-    end)
-  end
-
-  defp do_update(%{id: id} = changes, info, update_fn) do
+  def update_process(%{process: %{id: id} = changes}, info) do
     with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
          {:ok, process} <- process(%{id: id}, info),
          :ok <- ensure_update_permission(user, process),
          {:ok, uploads} <- UploadResolver.upload(user, changes, info),
          changes = Map.merge(changes, uploads),
-         {:ok, process} <- update_fn.(process, changes) do
+         {:ok, process} <- Processes.update(process, changes) do
       {:ok, %{process: process}}
     end
   end

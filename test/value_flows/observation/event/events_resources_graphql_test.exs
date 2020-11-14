@@ -260,7 +260,8 @@ defmodule ValueFlows.Observation.EconomicEvent.EventsResourcesGraphQLTest do
           })
       }
 
-      assert [%{"status" => 404, "code" => "not_found"}] = grumble_post_errors(q, conn, vars)
+      assert [%{"status" => 200, "code" => "foreign", "message" => "does not exist"}] =
+        grumble_post_errors(q, conn, vars)
     end
 
     test "create an economic event that transfers an existing resource from a provider to a receiver" do

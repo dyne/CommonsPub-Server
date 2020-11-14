@@ -145,6 +145,32 @@ defmodule Measurement.Test.Faking do
     gen_query(:id, &measure_subquery/1, options)
   end
 
+  def measures_pages_query(options \\ []) do
+    params =
+      [
+        after: list_type(:cursor),
+        before: list_type(:cursor),
+        limit: :int
+      ] ++ Keyword.get(options, :params, [])
+
+    gen_query(&measures_pages_subquery/1, [{:params, params} | options])
+  end
+
+  def measures_pages_subquery(options \\ []) do
+    args = [
+      after: var(:after),
+      before: var(:before),
+      limit: var(:limit)
+    ]
+
+    page_subquery(
+      :measures_pages,
+      &measure_fields/1,
+      [{:args, args} | options]
+    )
+  end
+
+
   def create_measure_mutation(options \\ []) do
     [measure: type!(:measure_create_params)]
     |> gen_mutation(&create_measure_submutation/1, options)

@@ -27,7 +27,7 @@ defmodule CommonsPub.Meta.Introspection do
   @spec is_ecto_schema_module?(atom) :: boolean()
   @doc "true if the given atom names an Ecto Schema module"
   def is_ecto_schema_module?(module) do
-    Code.ensure_loaded?(module) and
+    CommonsPub.Config.module_enabled?(module) and
       function_exported?(module, :__schema__, 1)
   end
 end

@@ -140,11 +140,11 @@ type MeasuresPage {
 type MeasurementQuery {
   unit(id: ID): Unit
   units(start: ID, limit: Int): [Unit!]
-  unitsPages(limit: Int, before: [Cursor], after: [Cursor]): [UnitsPage!]
+  unitsPages(limit: Int, before: [Cursor], after: [Cursor]): UnitsPage!
 
   measure(id: ID): Measure
   measures(start: ID, limit: Int): [Measure!]
-  measuresPages(limit: Int, before: [Cursor], after: [Cursor]): [MeasuresPage!]
+  measuresPages(limit: Int, before: [Cursor], after: [Cursor]): MeasuresPage!
 }
 
 type MeasurementMutation {

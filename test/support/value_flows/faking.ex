@@ -25,6 +25,7 @@ defmodule ValueFlows.Test.Faking do
   }
 
   alias ValueFlows.{
+    Claim,
     Proposal
     # Proposals
   }
@@ -57,6 +58,21 @@ defmodule ValueFlows.Test.Faking do
       resource_effect: &assert_binary/1,
       onhand_effect: assert_optional(&assert_binary/1),
       note: assert_optional(&assert_binary/1)
+    )
+  end
+
+  def assert_claim(%Claim{} = claim) do
+    assert_claim(Map.from_struct(claim))
+  end
+
+  def assert_claim(claim) do
+    assert_object(claim, :assert_claim,
+      note: assert_optional(&assert_binary/1),
+      agreed_in: assert_optional(&assert_binary/1),
+      finished: assert_optional(&assert_boolean/1),
+      created: assert_optional(&assert_datetime/1),
+      due: assert_optional(&assert_datetime/1),
+      resource_classified_as: assert_optional(assert_list(&assert_url/1))
     )
   end
 
@@ -231,6 +247,62 @@ defmodule ValueFlows.Test.Faking do
 
   ## Graphql
 
+  def claim_fields(extra \\ []) do
+    extra ++ ~w(id note agreed_in finished created due resource_classified_as)a
+  end
+
+  def claim_response_fields(extra \\ []) do
+    [claim: claim_fields(extra)]
+  end
+
+  def claim_query(options \\ []) do
+    options = Keyword.put_new(options, :id_type, :id)
+    gen_query(:id, &claim_subquery/1, options)
+  end
+
+  def claim_subquery(options \\ []) do
+    gen_subquery(:id, :claim, &claim_fields/1, options)
+  end
+
+  def claims_query(options \\ []) do
+    gen_query(&claims_subquery/1, options)
+  end
+
+  def claims_subquery(options \\ []) do
+    fields = Keyword.get(options, :fields, [])
+    fields = fields ++ claim_fields(fields)
+    field(:claims, [{:fields, fields} | options])
+  end
+
+  def create_claim_mutation(options \\ []) do
+    [claim: type!(:claim_create_params)]
+    |> gen_mutation(&create_claim_submutation/1, options)
+  end
+
+  def create_claim_submutation(options \\ []) do
+    [claim: var(:claim)]
+    |> gen_submutation(:create_claim, &claim_response_fields/1, options)
+  end
+
+  def update_claim_mutation(options \\ []) do
+    [claim: type!(:claim_update_params)]
+    |> gen_mutation(&update_claim_submutation/1, options)
+  end
+
+  def update_claim_submutation(options \\ []) do
+    [claim: var(:claim)]
+    |> gen_submutation(:update_claim, &claim_response_fields/1, options)
+  end
+
+  def delete_claim_mutation(options \\ []) do
+    [id: type!(:id)]
+    |> gen_mutation(&delete_claim_submutation/1, options)
+  end
+
+  def delete_claim_submutation(_options \\ []) do
+    field(:delete_claim, args: [id: var(:id)])
+  end
+
   def person_fields(extra \\ []) do
     extra ++
       ~w(name note agent_type canonical_url image display_username)a
@@ -394,6 +466,32 @@ defmodule ValueFlows.Test.Faking do
   def proposal_subquery(options \\ []) do
     gen_subquery(:id, :proposal, &proposal_fields/1, options)
   end
+
+  def proposals_pages_subquery(options \\ []) do
+    args = [
+      after: var(:after),
+      before: var(:before),
+      limit: var(:limit)
+    ]
+
+    page_subquery(
+      :proposals_pages,
+      &proposal_fields/1,
+      [{:args, args} | options]
+    )
+  end
+
+  def proposals_pages_query(options \\ []) do
+    params =
+      [
+        after: list_type(:cursor),
+        before: list_type(:cursor),
+        limit: :int
+      ] ++ Keyword.get(options, :params, [])
+
+    gen_query(&proposals_pages_subquery/1, [{:params, params} | options])
+  end
+
 
   def create_proposal_mutation(options \\ []) do
     [proposal: type!(:proposal_create_params)]

@@ -39,6 +39,8 @@ defmodule ValueFlows.Knowledge.ResourceSpecification do
 
     field(:deleted_at, :utc_datetime_usec)
 
+    has_many(:conforming_resources, ValueFlows.Observation.EconomicResource, foreign_key: :conforms_to)
+
     many_to_many(:tags, CommonsPub.Tag.Taggable,
       join_through: "tags_things",
       unique: true,
@@ -50,7 +52,7 @@ defmodule ValueFlows.Knowledge.ResourceSpecification do
   end
 
   @required ~w(name is_public)a
-  @cast @required ++ ~w(note is_disabled image_id)a
+  @cast @required ++ ~w(note is_disabled context_id image_id)a
 
   def create_changeset(
         %User{} = creator,
@@ -62,7 +64,7 @@ defmodule ValueFlows.Knowledge.ResourceSpecification do
     |> Changeset.validate_required(@required)
     |> Changeset.change(
       creator_id: creator.id,
-      default_unit_of_effort_id: Map.get(attrs, :default_unit_of_effort),
+      default_unit_of_effort_id: CommonsPub.Common.attr_get_id(attrs, :default_unit_of_effort),
       context_id: context.id,
       is_public: true
     )
@@ -78,7 +80,7 @@ defmodule ValueFlows.Knowledge.ResourceSpecification do
     |> Changeset.validate_required(@required)
     |> Changeset.change(
       creator_id: creator.id,
-      default_unit_of_effort_id: Map.get(attrs, :default_unit_of_effort),
+      default_unit_of_effort_id: CommonsPub.Common.attr_get_id(attrs, :default_unit_of_effort),
       is_public: true
     )
     |> common_changeset()
@@ -93,7 +95,7 @@ defmodule ValueFlows.Knowledge.ResourceSpecification do
     |> Changeset.cast(attrs, @cast)
     |> Changeset.change(
       context_id: context.id,
-      default_unit_of_effort_id: Map.get(attrs, :default_unit_of_effort)
+      default_unit_of_effort_id: CommonsPub.Common.attr_get_id(attrs, :default_unit_of_effort)
     )
     |> common_changeset()
   end
@@ -101,7 +103,7 @@ defmodule ValueFlows.Knowledge.ResourceSpecification do
   def update_changeset(%ResourceSpecification{} = resource_spec, attrs) do
     resource_spec
     |> Changeset.cast(attrs, @cast)
-    |> Changeset.change(default_unit_of_effort_id: Map.get(attrs, :default_unit_of_effort))
+    |> Changeset.change(default_unit_of_effort_id: CommonsPub.Common.attr_get_id(attrs, :default_unit_of_effort))
     |> common_changeset()
   end
 

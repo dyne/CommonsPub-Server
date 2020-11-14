@@ -44,6 +44,31 @@ defmodule Geolocation.Test.Faking do
     gen_subquery(:id, :spatial_thing, &geolocation_query_fields/1, options)
   end
 
+  def geolocation_pages_subquery(options \\ []) do
+    args = [
+      after: var(:after),
+      before: var(:before),
+      limit: var(:limit)
+    ]
+
+    page_subquery(
+      :spatial_things_pages,
+      &geolocation_query_fields/1,
+      [{:args, args} | options]
+    )
+  end
+
+  def geolocation_pages_query(options \\ []) do
+    params =
+      [
+        after: list_type(:cursor),
+        before: list_type(:cursor),
+        limit: :int
+      ] ++ Keyword.get(options, :params, [])
+
+    gen_query(&geolocation_pages_subquery/1, [{:params, params} | options])
+  end
+
   def create_geolocation_mutation(options \\ []) do
     [spatial_thing: type!(:spatial_thing_input)]
     |> gen_mutation(&create_geolocation_submutation/1, options)

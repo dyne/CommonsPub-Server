@@ -149,7 +149,7 @@ defmodule Organisation.Queries do
   end
 
   def filter(q, {:context_id, ids}) when is_list(ids) do
-    where(q, [organisation: c], c.community_id in ^ids)
+    where(q, [organisation: c], c.context_id in ^ids)
   end
 
   def filter(q, {:username, username}) when is_binary(username) do

@@ -11,7 +11,7 @@ defmodule Geolocation.GraphQL do
 
   alias CommonsPub.GraphQL.{
     # ResolvePage,
-    ResolvePages,
+    # ResolvePages,
     ResolveField,
     # ResolveFields,
     ResolveRootPage,
@@ -88,31 +88,12 @@ defmodule Geolocation.GraphQL do
     {:ok, DateTime.utc_now()}
   end
 
-  def outbox_edge(%Geolocation{outbox_id: id}, page_opts, info) do
-    ResolvePages.run(%ResolvePages{
-      module: __MODULE__,
-      fetcher: :fetch_outbox_edge,
-      context: id,
-      page_opts: page_opts,
-      info: info
-    })
+
+
+  defp default_outbox_query_contexts() do
+    CommonsPub.Config.get!(Geolocations)
+    |> Keyword.fetch!(:default_outbox_query_contexts)
   end
-
-  # def fetch_outbox_edge(page_opts, info, id) do
-  #   user = info.context.current_user
-
-  #   Activities.page(
-  #     & &1.id,
-  #     page_opts,
-  #     feed: id,
-  #     table: default_outbox_query_contexts()
-  #   )
-  # end
-
-  # defp default_outbox_query_contexts() do
-  #   CommonsPub.Config.get!(Geolocations)
-  #   |> Keyword.fetch!(:default_outbox_query_contexts)
-  # end
 
   ## finally the mutations...
 

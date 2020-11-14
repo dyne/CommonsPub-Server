@@ -39,6 +39,10 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.Queries do
     join(q, jq, [resource_spec: c], t in assoc(c, :tags), as: :tags)
   end
 
+  def join_to(q, :default_unit_of_effort, jq) do
+    join(q, jq, [resource_spec: c], u in assoc(c, :default_unit_of_effort), as: :default_unit_of_effort)
+  end
+
   def join_to(q, {:follow, follower_id}, jq) do
     join(q, jq, [resource_spec: c], f in Follow,
       as: :follow,
@@ -57,7 +61,7 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.Queries do
   ## by preset
 
   def filter(q, :default) do
-    filter(q, [:deleted])
+    filter(q, [:deleted, preload: :default_unit_of_effort])
   end
 
   ## by join
@@ -164,6 +168,12 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.Queries do
 
   def filter(q, {:preload, :receiver}) do
     preload(q, [pointer: p], receiver: p)
+  end
+
+  def filter(q, {:preload, :default_unit_of_effort}) do
+    q
+    |> join_to(:default_unit_of_effort)
+    |> preload([default_unit_of_effort: u], default_unit_of_effort: u)
   end
 
   # pagination

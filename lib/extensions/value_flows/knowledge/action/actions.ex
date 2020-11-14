@@ -1,17 +1,17 @@
 defmodule ValueFlows.Knowledge.Action.Actions do
   # @on_load :load_actions
 
-  def action!(label)  do
+  def action!(label) do
     with {:ok, action} <- action(label) do
       action
-    else _ -> nil
+    else
+      _ -> nil
     end
   end
 
   def action(label) when is_atom(label) do
     action(Atom.to_string(label))
   end
-
 
   def action(label) do
     case load_actions()[label] do

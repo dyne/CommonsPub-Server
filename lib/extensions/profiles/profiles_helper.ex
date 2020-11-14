@@ -76,7 +76,7 @@ defmodule CommonsPub.Profiles.Web.ProfilesHelper do
           {preload, included} = field
 
           if(included) do
-            Map.merge(profile, maybe_preload(profile, preload))
+            Map.merge(profile, CommonsPub.Repo.maybe_preload(profile, preload))
           else
             profile
           end

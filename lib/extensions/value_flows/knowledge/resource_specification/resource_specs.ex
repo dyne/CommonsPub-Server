@@ -1,17 +1,15 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Knowledge.ResourceSpecification.ResourceSpecifications do
+  import CommonsPub.Common, only: [maybe_put: 3, attr_get_id: 2]
+
   alias CommonsPub.{Activities, Common, Feeds, Repo}
   alias CommonsPub.GraphQL.{Fields, Page}
-  alias CommonsPub.Common.Contexts
+  alias CommonsPub.Contexts
   alias CommonsPub.Feeds.FeedActivities
   alias CommonsPub.Users.User
-  # alias CommonsPub.Meta.Pointers
 
-  # alias Measurement.Measure
   alias ValueFlows.Knowledge.ResourceSpecification
   alias ValueFlows.Knowledge.ResourceSpecification.Queries
-  # alias ValueFlows.Knowledge.Action
-  # alias ValueFlows.Knowledge.Action.Actions
 
   def cursor(), do: &[&1.id]
   def test_cursor(), do: &[&1["id"]]
@@ -86,26 +84,12 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.ResourceSpecifications do
 
   ## mutations
 
-  # @spec create(User.t(), Community.t(), attrs :: map) :: {:ok, ResourceSpecification.t()} | {:error, Changeset.t()}
-  def create(%User{} = creator, %{id: _id} = context, attrs)
-      when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      ResourceSpecification.create_changeset(creator, context, attrs)
-    end)
-  end
-
-  # @spec create(User.t(), attrs :: map) :: {:ok, ResourceSpecification.t()} | {:error, Changeset.t()}
+  @spec create(User.t(), attrs :: map) :: {:ok, ResourceSpecification.t()} | {:error, Changeset.t()}
   def create(%User{} = creator, attrs) when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      ResourceSpecification.create_changeset(creator, attrs)
-    end)
-  end
-
-  def do_create(creator, attrs, changeset_fn) do
     Repo.transact_with(fn ->
-      cs = changeset_fn.()
+      attrs = prepare_attrs(attrs)
 
-      with {:ok, item} <- Repo.insert(cs),
+      with {:ok, item} <- Repo.insert(ResourceSpecification.create_changeset(creator, attrs)),
            {:ok, item} <- ValueFlows.Util.try_tag_thing(creator, item, attrs),
            act_attrs = %{verb: "created", is_local: true},
            # FIXME
@@ -166,25 +150,14 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.ResourceSpecifications do
   # TODO: take the user who is performing the update
   # @spec update(%ResourceSpecification{}, attrs :: map) :: {:ok, ResourceSpecification.t()} | {:error, Changeset.t()}
   def update(%ResourceSpecification{} = resource_spec, attrs) do
-    do_update(resource_spec, attrs, &ResourceSpecification.update_changeset(&1, attrs))
-  end
-
-  def update(%ResourceSpecification{} = resource_spec, %{id: _id} = context, attrs) do
-    do_update(resource_spec, attrs, &ResourceSpecification.update_changeset(&1, context, attrs))
-  end
-
-  def do_update(resource_spec, attrs, changeset_fn) do
     Repo.transact_with(fn ->
       resource_spec =
         Repo.preload(resource_spec, [
           :default_unit_of_effort
         ])
 
-      cs =
-        resource_spec
-        |> changeset_fn.()
-
-      with {:ok, resource_spec} <- Repo.update(cs),
+      attrs = prepare_attrs(attrs)
+      with {:ok, resource_spec} <- Repo.update(ResourceSpecification.update_changeset(resource_spec, attrs)),
            {:ok, resource_spec} <- ValueFlows.Util.try_tag_thing(nil, resource_spec, attrs) do
         publish(resource_spec, :updated)
         {:ok, resource_spec}
@@ -194,7 +167,7 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.ResourceSpecifications do
 
   def soft_delete(%ResourceSpecification{} = resource_spec) do
     Repo.transact_with(fn ->
-      with {:ok, resource_spec} <- Common.soft_delete(resource_spec),
+      with {:ok, resource_spec} <- Common.Deletion.soft_delete(resource_spec),
            :ok <- publish(resource_spec, :deleted) do
         {:ok, resource_spec}
       end
@@ -225,5 +198,12 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.ResourceSpecifications do
     CommonsPub.Search.Indexer.maybe_index_object(object)
 
     :ok
+  end
+
+  defp prepare_attrs(attrs) do
+    attrs
+    |> maybe_put(:context_id,
+      attrs |> Map.get(:in_scope_of) |> CommonsPub.Common.maybe(&List.first/1)
+    )
   end
 end

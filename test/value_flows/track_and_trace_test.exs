@@ -1,5 +1,5 @@
 defmodule ValueFlows.TrackAndTraceTest do
-  use CommonsPub.Web.ConnCase, async: true
+  use CommonsPub.DataCase, async: true
 
   import CommonsPub.Test.Faking
   import CommonsPub.Tag.Simulate
@@ -50,6 +50,19 @@ defmodule ValueFlows.TrackAndTraceTest do
   end
 
   describe "Trace" do
+    test "return an economic event that is not part of a process from tracing a resource" do
+      user = fake_user!()
+      resource = fake_economic_resource!(user)
+      event = fake_economic_event!(user, %{
+        resource_inventoried_as: resource.id,
+        action: "produce"
+      })
+      assert {:ok, events} = EconomicResources.trace(resource)
+      IO.inspect(events)
+      for event <- events do
 
+        assert {:ok, []} = EconomicEvents.trace(event)
+      end
+    end
   end
 end

@@ -28,7 +28,7 @@ defmodule Geolocation.Simulate do
     |> Map.put_new_lazy("alt", &pos_integer/0)
   end
 
-  def fake_geolocation!(user, context \\ nil, overrides \\ %{})
+  def fake_geolocation!(user \\ nil, context \\ nil, overrides \\ %{})
 
   def fake_geolocation!(user, context, overrides) when is_nil(context) do
     {:ok, geolocation} = Geolocations.create(user, geolocation(overrides))

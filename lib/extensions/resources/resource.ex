@@ -14,9 +14,16 @@ defmodule CommonsPub.Resources.Resource do
 
   table_schema "mn_resource" do
     belongs_to(:creator, User)
-    # TODO: replace by context
-    belongs_to(:collection, Collection)
+
+    # replaced by context
+    # belongs_to(:collection, Collection)
+    # field(:collection_id, :string, virtual: true)
+    # field(:community_id, :string, virtual: true)
+    belongs_to(:community, Community, foreign_key: :context_id, define_field: false)
+    belongs_to(:collection, Collection, foreign_key: :context_id, define_field: false)
+
     belongs_to(:context, Pointers.Pointer)
+
     belongs_to(:content, Content)
     belongs_to(:icon, Content)
 
@@ -74,22 +81,6 @@ defmodule CommonsPub.Resources.Resource do
   @required ~w(name content_id creator_id)a
   @cast @required ++
           ~w(canonical_url is_public is_disabled license summary icon_id extra_info author subject level language type mime_type embed_type embed_code public_access free_access accessibility_feature)a
-
-  @spec create_changeset(User.t(), Collection.t(), map) :: Changeset.t()
-  def create_changeset(creator, %Collection{} = collection, attrs) do
-    %Resource{}
-    |> Changeset.cast(attrs, @cast)
-    |> cast_object()
-    |> Changeset.change(
-      # collection_id is being deprecated in favour of context_id
-      collection_id: collection.id,
-      context_id: collection.id,
-      creator_id: creator.id,
-      is_public: true
-    )
-    |> Changeset.validate_required(@required)
-    |> common_changeset()
-  end
 
   @doc "Creates a changeset for insertion of a resource with the given attributes."
   def create_changeset(creator, context, attrs) do

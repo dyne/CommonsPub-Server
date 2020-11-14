@@ -10,9 +10,9 @@ defmodule Geolocation do
 
   alias Ecto.Changeset
   alias CommonsPub.Users.User
-  alias CommonsPub.Characters.Character
+  # alias CommonsPub.Characters.Character
   alias Pointers.Pointer
-  alias CommonsPub.Feeds.Feed
+  # alias CommonsPub.Feeds.Feed
 
   @type t :: %__MODULE__{}
 
@@ -41,8 +41,9 @@ defmodule Geolocation do
 
     belongs_to(:context, Pointer)
 
-    belongs_to(:inbox_feed, Feed, foreign_key: :inbox_id)
-    belongs_to(:outbox_feed, Feed, foreign_key: :outbox_id)
+    # belongs_to(:inbox_feed, Feed, foreign_key: :inbox_id)
+    # belongs_to(:outbox_feed, Feed, foreign_key: :outbox_id)
+
     # because it's keyed by pointer
     field(:follower_count, :any, virtual: true)
 
@@ -52,10 +53,10 @@ defmodule Geolocation do
   @postgis_srid 4326
 
   @required ~w(name)a
-  @cast @required ++ ~w(note mappable_address lat long geom alt is_disabled inbox_id outbox_id)a
+  @cast @required ++ ~w(note mappable_address lat long geom alt is_disabled)a
 
   def create_changeset(
-        %User{} = creator,
+        creator,
         %{id: _} = context,
         attrs
       ) do
@@ -63,7 +64,7 @@ defmodule Geolocation do
     |> Changeset.cast(attrs, @cast)
     |> Changeset.validate_required(@required)
     |> Changeset.change(
-      creator_id: creator.id,
+      creator_id: CommonsPub.Common.maybe_get(creator, :id),
       context_id: context.id,
       is_public: true
     )
@@ -71,14 +72,14 @@ defmodule Geolocation do
   end
 
   def create_changeset(
-        %User{} = creator,
+        creator,
         attrs
       ) do
     %__MODULE__{}
     |> Changeset.cast(attrs, @cast)
     |> Changeset.validate_required(@required)
     |> Changeset.change(
-      creator_id: creator.id,
+      creator_id: CommonsPub.Common.maybe_get(creator, :id),
       is_public: true
     )
     |> common_changeset()

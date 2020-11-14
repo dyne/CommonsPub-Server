@@ -268,7 +268,7 @@ defmodule CommonsPub.Repo.Migrations.BigRefactor do
     create table(:mn_resource) do
       add(:canonical_url, :text)
       add(:creator_id, references("mn_user", on_delete: :nilify_all))
-      add(:collection_id, references("mn_collection", on_delete: :nilify_all))
+      # add(:collection_id, references("mn_collection", on_delete: :nilify_all))
       add(:primary_language_id, references("mn_language", on_delete: :nilify_all))
       add(:name, :string)
       add(:summary, :text)
@@ -284,7 +284,7 @@ defmodule CommonsPub.Repo.Migrations.BigRefactor do
     create(index(:mn_resource, :updated_at))
     create(unique_index(:mn_resource, :canonical_url))
     create(index(:mn_resource, :creator_id))
-    create(index(:mn_resource, :collection_id))
+    # create(index(:mn_resource, :collection_id))
     create(index(:mn_resource, :primary_language_id))
 
     ### comment system
@@ -750,7 +750,7 @@ defmodule CommonsPub.Repo.Migrations.BigRefactor do
     drop(index(:mn_resource, :updated_at))
     drop(index(:mn_resource, :canonical_url))
     drop(index(:mn_resource, :creator_id))
-    drop(index(:mn_resource, :collection_id))
+    # drop(index(:mn_resource, :collection_id))
     drop(index(:mn_resource, :primary_language_id))
     drop(table(:mn_resource))
 

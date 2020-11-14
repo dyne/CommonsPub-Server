@@ -177,7 +177,7 @@ defmodule CommonsPub.Threads.Comments do
   @spec soft_delete(User.t(), Comment.t()) :: {:ok, Comment.t()} | {:error, Changeset.t()}
   def soft_delete(%User{} = user, %Comment{} = comment) do
     Repo.transact_with(fn ->
-      with {:ok, deleted} <- Common.soft_delete(comment),
+      with {:ok, deleted} <- Common.Deletion.soft_delete(comment),
            :ok <- chase_delete(user, comment.id),
            :ok <- ap_publish("delete", comment) do
         {:ok, deleted}
@@ -217,7 +217,7 @@ defmodule CommonsPub.Threads.Comments do
 
   defp publish(creator, thread, _comment, activity, _context_id) do
     feeds =
-      CommonsPub.Common.Contexts.context_feeds(thread.context.pointed) ++
+      CommonsPub.Contexts.context_feeds(thread.context.pointed) ++
         [
           CommonsPub.Feeds.outbox_id(creator),
           thread.outbox_id,
@@ -244,9 +244,117 @@ defmodule CommonsPub.Threads.Comments do
 
   defp ap_publish(_, _), do: :ok
 
+  def ap_publish_activity("create", comment) do
+    comment = CommonsPub.Repo.preload(comment, thread: :context)
+
+    # IO.inspect(publish_comment: comment)
+
+    # FIXME: this may break if parent is an object that isn't in AP database or doesn't have a pointer_id filled
+
+    context =
+      if(comment.thread.context) do
+        CommonsPub.Meta.Pointers.follow!(comment.thread.context)
+      end
+
+    context_ap_id =
+      if(context) do
+        CommonsPub.ActivityPub.Utils.get_object_ap_id!(context)
+      end
+
+    comment_ap_id = CommonsPub.ActivityPub.Utils.generate_object_ap_id(comment)
+
+    # IO.inspect(comment_ap_id: comment_ap_id)
+
+    with nil <- ActivityPub.Object.get_by_pointer_id(comment.id),
+         {:ok, actor} <- ActivityPub.Actor.get_cached_by_local_id(comment.creator_id),
+         {to, cc} <- CommonsPub.ActivityPub.Utils.determine_recipients(actor, comment, context),
+         object = %{
+           "id" => comment_ap_id,
+           "content" => comment.content,
+           "to" => to,
+           "cc" => cc,
+           "actor" => actor.ap_id,
+           "attributedTo" => actor.ap_id,
+           "type" => "Note",
+           "inReplyTo" => CommonsPub.ActivityPub.Utils.get_in_reply_to(comment),
+           "context" => context_ap_id
+         },
+         params = %{
+           actor: actor,
+           to: to,
+           object: object,
+           context: context_ap_id,
+           additional: %{
+             "cc" => cc
+           }
+         },
+         {:ok, activity} <-
+           ActivityPub.create(params, comment.id) do
+      Ecto.Changeset.change(comment, %{canonical_url: activity.object.data["id"]})
+      |> CommonsPub.Repo.update()
+
+      {:ok, activity}
+    else
+      e -> {:error, e}
+    end
+  end
+
+  # Activity: Create / Object : Note
+  def ap_receive_activity(
+        %{data: %{"type" => "Create"}} = _activity,
+        %{data: %{"type" => "Note", "inReplyTo" => in_reply_to}} = object
+      )
+      when not is_nil(in_reply_to) do
+    # This will fail if the reply isn't in database
+    with parent_id <- CommonsPub.ActivityPub.Utils.get_pointer_id_by_ap_id(in_reply_to),
+         {:ok, parent_comment} <- CommonsPub.Threads.Comments.one(id: parent_id),
+         {:ok, thread} <- CommonsPub.Threads.one(id: parent_comment.thread_id),
+         {:ok, actor} <-
+           CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(object.data["actor"]),
+         {:ok, comment} <-
+           CommonsPub.Threads.Comments.create_reply(actor, thread, parent_comment, %{
+             is_public: object.public,
+             content: object.data["content"],
+             is_local: false,
+             canonical_url: object.data["id"]
+           }) do
+      ActivityPub.Object.update(object, %{pointer_id: comment.id})
+      :ok
+    else
+      {:error, e} -> {:error, e}
+    end
+  end
+
+  # Activity: Create / Object : Note
+  def ap_receive_activity(
+        %{data: %{"type" => "Create", "context" => context}} = _activity,
+        %{data: %{"type" => "Note"}} = object
+      ) do
+    # TODO: dedup with prev function
+    with pointer_id <- CommonsPub.ActivityPub.Utils.get_pointer_id_by_ap_id(context),
+         {:ok, pointer} <- CommonsPub.Meta.Pointers.one(id: pointer_id),
+         parent = CommonsPub.Meta.Pointers.follow!(pointer),
+         {:ok, actor} <-
+           CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(object.data["actor"]),
+         {:ok, thread} <-
+           CommonsPub.Threads.create(actor, %{is_public: true, is_local: false}, parent),
+         {:ok, comment} <-
+           CommonsPub.Threads.Comments.create(actor, thread, %{
+             is_public: object.public,
+             content: object.data["content"],
+             is_local: false,
+             canonical_url: object.data["id"]
+           }) do
+      ActivityPub.Object.update(object, %{pointer_id: comment.id})
+      :ok
+    else
+      {:error, e} -> {:error, e}
+    end
+  end
+
   def indexing_object_format(comment) do
-    thread = CommonHelper.maybe_preload(comment.thread, :context)
-    context = CommonHelper.maybe_preload(thread.context, :character)
+    thread = CommonsPub.Repo.maybe_preload(comment.thread, :context)
+    context = CommonsPub.Repo.maybe_preload(thread.context, :character)
 
     # follower_count =
     #   case CommonsPub.Follows.FollowerCounts.one(context: comment.id) do

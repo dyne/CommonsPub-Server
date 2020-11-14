@@ -40,7 +40,7 @@ defmodule CommonsPub.Tag.TagThings do
   """
   def things_add_tags(user, thing, taggables) do
     with {:ok, _taggable} <- thing_attach_tags(user, thing, taggables) do
-      {:ok, CommonsPub.Utils.Web.CommonHelper.maybe_preload(thing, :tags)}
+      {:ok, CommonsPub.Repo.maybe_preload(thing, :tags)}
     end
   end
 
@@ -115,7 +115,7 @@ defmodule CommonsPub.Tag.TagThings do
     end)
   end
 
-  defp thing_tags_save(thing, tags) do
+  defp thing_tags_save(thing, _tags) do
     {:ok, thing}
   end
 

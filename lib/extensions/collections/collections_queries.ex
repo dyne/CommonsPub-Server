@@ -4,6 +4,8 @@ defmodule CommonsPub.Collections.Queries do
   alias CommonsPub.Collections.Collection
   alias CommonsPub.Follows.{Follow, FollowerCount}
   alias CommonsPub.Users.User
+  alias CommonsPub.Communities.Community
+
   import CommonsPub.Common.Query, only: [match_admin: 0]
   import Ecto.Query
 
@@ -125,10 +127,10 @@ defmodule CommonsPub.Collections.Queries do
     do: where(q, [collection: c], c.context_id in ^ids)
 
   def filter(q, {:community, id}) when is_binary(id),
-    do: where(q, [collection: c], c.context_id == ^id or c.community_id == ^id)
+    do: where(q, [collection: c], c.context_id == ^id)
 
   def filter(q, {:community, ids}) when is_list(ids),
-    do: where(q, [collection: c], c.context_id in ^ids or c.community_id in ^ids)
+    do: where(q, [collection: c], c.context_id in ^ids)
 
   def filter(q, {:creator, id}) when is_binary(id) do
     where(q, [collection: c], c.creator_id == ^id)
@@ -164,10 +166,6 @@ defmodule CommonsPub.Collections.Queries do
   def filter(q, {:preload, :character}), do: preload(q, [character: a], character: a)
 
   def filter(q, {:limit, limit}), do: limit(q, ^limit)
-
-  def filter(q, {:select, :delete}) do
-    select(q, [collection: c], %{id: c.id, inbox_id: c.inbox_id, outbox_id: c.outbox_id})
-  end
 
   def filter(q, {:page, [desc: [followers: page_opts]]}) do
     q

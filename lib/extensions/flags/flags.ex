@@ -51,7 +51,7 @@ defmodule CommonsPub.Flags do
 
   def soft_delete(%User{} = user, %Flag{} = flag) do
     Repo.transact_with(fn ->
-      with {:ok, flag} <- Common.soft_delete(flag),
+      with {:ok, flag} <- Common.Deletion.soft_delete(flag),
            :ok <- chase_delete(user, flag.id),
            :ok <- ap_publish("delete", flag) do
         {:ok, flag}
@@ -92,6 +92,116 @@ defmodule CommonsPub.Flags do
   end
 
   defp ap_publish(_, _), do: :ok
+
+  def ap_publish_activity("create", %Flag{} = flag) do
+    flag = CommonsPub.Repo.preload(flag, creator: :character, context: [])
+
+    with {:ok, flagger} <-
+           ActivityPub.Actor.get_cached_by_username(flag.creator.character.preferred_username) do
+      flagged = CommonsPub.Meta.Pointers.follow!(flag.context)
+
+      # FIXME: this is kinda stupid, need to figure out a better way to handle meta-participating objects
+      params =
+        case flagged do
+          %{character: %{preferred_username: preferred_username} = _character}
+          when not is_nil(preferred_username) ->
+            {:ok, account} = ActivityPub.Actor.get_or_fetch_by_username(preferred_username)
+
+            %{
+              statuses: nil,
+              account: account
+            }
+
+          %{character_id: id} when not is_nil(id) ->
+            flagged = CommonsPub.Repo.preload(flagged, :character)
+
+            {:ok, account} =
+              ActivityPub.Actor.get_or_fetch_by_username(flagged.character.preferred_username)
+
+            %{
+              statuses: nil,
+              account: account
+            }
+
+          %{creator_id: id} when not is_nil(id) ->
+            flagged = CommonsPub.Repo.preload(flagged, creator: :character)
+
+            {:ok, account} =
+              ActivityPub.Actor.get_or_fetch_by_username(
+                flagged.creator.character.preferred_username
+              )
+
+            %{
+              statuses: [ActivityPub.Object.get_cached_by_pointer_id(flagged.id)],
+              account: account
+            }
+        end
+
+      ActivityPub.flag(
+        %{
+          actor: flagger,
+          context: ActivityPub.Utils.generate_context_id(),
+          statuses: params.statuses,
+          account: params.account,
+          content: flag.message,
+          forward: true
+        },
+        flag.id
+      )
+    else
+      e -> {:error, e}
+    end
+  end
+
+  # def ap_receive_activity(activity, objects) do
+  #   IO.inspect(activity)
+  #   IO.inspect(objects)
+  # end
+
+  # Activity: Flag (many objects)
+  def ap_receive_activity(%{data: %{"type" => "Flag"}} = activity, objects)
+      when is_list(objects) and length(objects) > 1 do
+    with {:ok, actor} <-
+           CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(activity.data["actor"]) do
+      objects
+      |> Enum.map(fn ap_id -> CommonsPub.ActivityPub.Utils.get_pointer_id_by_ap_id(ap_id) end)
+      # Filter nils
+      |> Enum.filter(fn pointer_id -> pointer_id end)
+      |> Enum.map(fn pointer_id ->
+        CommonsPub.Meta.Pointers.one!(id: pointer_id)
+        |> CommonsPub.Meta.Pointers.follow!()
+      end)
+      |> Enum.each(fn thing ->
+        CommonsPub.Flags.create(actor, thing, %{
+          message: activity.data["content"],
+          is_local: false
+        })
+      end)
+
+      :ok
+    end
+  end
+
+  # Activity: Flag (one object)
+  def ap_receive_activity(activity, [object]) do
+    ap_receive_activity(activity, object)
+  end
+
+  def ap_receive_activity(%{data: %{"type" => "Flag"}} = activity, object) do
+    with {:ok, actor} <-
+           CommonsPub.ActivityPub.Utils.get_raw_character_by_ap_id(activity.data["actor"]),
+         pointer_id <- CommonsPub.ActivityPub.Utils.get_pointer_id_by_ap_id(object),
+         thing =
+           CommonsPub.Meta.Pointers.one!(id: pointer_id)
+           |> CommonsPub.Meta.Pointers.follow!() do
+      CommonsPub.Flags.create(actor, thing, %{
+        message: activity.data["content"],
+        is_local: false
+      })
+
+      :ok
+    end
+  end
 
   defp insert_activity(flagger, flag, verb) do
     Activities.create(flagger, flag, %{verb: verb, is_local: flag.is_local})

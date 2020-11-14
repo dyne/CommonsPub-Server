@@ -157,6 +157,7 @@ defmodule ValueFlows.Observation.EconomicEvent.EventSideEffects do
            EconomicResources.update(resource, %{onhand_quantity: by_quantity}) do
       resource
     end
+
     resource
   end
 
@@ -191,8 +192,20 @@ defmodule ValueFlows.Observation.EconomicEvent.EventSideEffects do
     measurement
   end
 
+  def return_updated_event(event, {:error, e}) do
+    {:error, e}
+  end
+
   def return_updated_event(event, resource) do
     {:ok, %{event | resource_inventoried_as: resource}}
+  end
+
+  def return_updated_event(event, {:error, e}, _) do
+    {:error, e}
+  end
+
+  def return_updated_event(event, _, {:error, e}) do
+    {:error, e}
   end
 
   def return_updated_event(event, resource, to_resource) do

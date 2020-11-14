@@ -44,11 +44,13 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResourcesTest do
 
     test "Returns a list of transfer/move EconomicEvents with the resource defined as the resourceInventoriedAs" do
       user = fake_user!()
-      resource = fake_economic_resource!(user)
+      unit = fake_unit!(user)
+
+      resource = fake_economic_resource!(user, %{}, unit)
       input_events = some(3, fn -> fake_economic_event!(user, %{
         resource_inventoried_as: resource.id,
         action: "transfer"
-      }) end)
+      }, unit) end)
       assert {:ok, events} = EconomicResources.track(resource)
       assert Enum.map(events, &(&1.id)) == Enum.map(input_events, &(&1.id))
     end
@@ -75,13 +77,14 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResourcesTest do
 
     test "Returns a list of transfer/move EconomicEvents with the resource defined as the toResourceInventoriedAs" do
       user = fake_user!()
-      resource = fake_economic_resource!(user)
+      unit = fake_unit!(user)
+      resource = fake_economic_resource!(user, %{}, unit)
       input_events = some(3, fn -> fake_economic_event!(user, %{
         provider: user.id,
         receiver: user.id,
         to_resource_inventoried_as: resource.id,
         action: "transfer"
-      }) end)
+      }, unit) end)
       assert {:ok, events} = EconomicResources.trace(resource)
       assert Enum.map(events, &(&1.id)) == Enum.map(input_events, &(&1.id))
     end
@@ -127,7 +130,7 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResourcesTest do
 
     test "can create an economic resource with primary_accountable" do
       user = fake_user!()
-      owner = fake_user!()
+      owner = fake_agent!()
       attrs = %{
         primary_accountable: owner.id
       }

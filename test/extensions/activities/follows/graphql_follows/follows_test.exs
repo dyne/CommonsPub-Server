@@ -12,7 +12,7 @@ defmodule CommonsPub.Web.GraphQL.FollowsTest do
   setup do
     mock(fn
       env ->
-        apply(HttpRequestMock, :request, [env])
+        apply(CommonsPub.HttpRequestMock, :request, [env])
     end)
 
     :ok

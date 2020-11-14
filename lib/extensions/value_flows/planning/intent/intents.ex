@@ -1,18 +1,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Planning.Intent.Intents do
+  import CommonsPub.Common, only: [maybe_put: 3, attr_get_id: 2]
+
   alias CommonsPub.{Activities, Common, Feeds, Repo}
   alias CommonsPub.GraphQL.{Fields, Page}
-  alias CommonsPub.Common.Contexts
+  alias CommonsPub.Contexts
   alias CommonsPub.Feeds.FeedActivities
   alias CommonsPub.Users.User
-  alias CommonsPub.Meta.Pointers
 
-  alias Geolocation.Geolocations
-  # alias Measurement.Measure
+  alias ValueFlows.Knowledge.Action.Actions
   alias ValueFlows.Planning.Intent
   alias ValueFlows.Planning.Intent.Queries
-  alias ValueFlows.Knowledge.Action
-  alias ValueFlows.Knowledge.Action.Actions
 
   def cursor(), do: &[&1.id]
   def test_cursor(), do: &[&1["id"]]
@@ -85,68 +83,38 @@ defmodule ValueFlows.Planning.Intent.Intents do
     )
   end
 
+  def preload_all(%Intent{} = intent) do
+    # shouldn't fail
+    {:ok, intent} = one(id: intent.id, preload: :all)
+    preload_action(intent)
+  end
+
+  def preload_action(%Intent{} = intent) do
+    Map.put(intent, :action, Actions.action!(intent.action_id))
+  end
+
   ## mutations
 
-  # @spec create(User.t(), Community.t(), attrs :: map) :: {:ok, Intent.t()} | {:error, Changeset.t()}
-
-  def create(%User{} = creator, %Action{} = action, nil, attrs)
-      when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      Intent.create_changeset(creator, action, attrs)
-    end)
-  end
-
-  def create(%User{} = creator, %Action{} = action, %{id: _id} = context, attrs)
-      when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      Intent.create_changeset(creator, action, context, attrs)
-    end)
-  end
-
-  # @spec create(User.t(), attrs :: map) :: {:ok, Intent.t()} | {:error, Changeset.t()}
-  def create(%User{} = creator, %Action{} = action, attrs) when is_map(attrs) do
-    do_create(creator, attrs, fn ->
-      Intent.create_changeset(creator, action, attrs)
-    end)
-  end
-
-  def do_create(creator, attrs, changeset_fn) do
-    attrs = parse_measurement_attrs(attrs)
+  @spec create(User.t(), attrs :: map) :: {:ok, Intent.t()} | {:error, Changeset.t()}
+  def create(%User{} = creator, attrs) when is_map(attrs) do
+    attrs = prepare_attrs(attrs)
 
     Repo.transact_with(fn ->
-      cs =
-        changeset_fn.()
-        |> Intent.change_measures(attrs)
-
-      with {:ok, cs} <- change_at_location(cs, attrs),
-           {:ok, cs} <- change_agent(cs, attrs),
-           {:ok, item} <- Repo.insert(cs),
-           {:ok, item} <- ValueFlows.Util.try_tag_thing(nil, item, attrs),
+      with {:ok, intent} <- Repo.insert(Intent.create_changeset(creator, attrs)),
+           {:ok, intent} <- ValueFlows.Util.try_tag_thing(nil, intent, attrs),
            act_attrs = %{verb: "created", is_local: true},
            # FIXME
-           {:ok, activity} <- Activities.create(creator, item, act_attrs),
-           :ok <- publish(creator, item, activity, :created) do
-        item = %{item | creator: creator}
-        index(item)
-        {:ok, item}
+           {:ok, activity} <- Activities.create(creator, intent, act_attrs),
+           :ok <- publish(creator, intent, activity, :created) do
+        intent = %{intent | creator: creator}
+        index(intent)
+        {:ok, preload_all(intent)}
       end
     end)
   end
 
   defp publish(creator, intent, activity, :created) do
     feeds = [
-      CommonsPub.Feeds.outbox_id(creator),
-      Feeds.instance_outbox_id()
-    ]
-
-    with :ok <- FeedActivities.publish(activity, feeds) do
-      ap_publish("create", intent.id, creator.id)
-    end
-  end
-
-  defp publish(creator, context, intent, activity, :created) do
-    feeds = [
-      context.outbox_id,
       CommonsPub.Feeds.outbox_id(creator),
       Feeds.instance_outbox_id()
     ]
@@ -176,49 +144,23 @@ defmodule ValueFlows.Planning.Intent.Intents do
     :ok
   end
 
-  defp ap_publish(_, _, _), do: :ok
-
   # TODO: take the user who is performing the update
   # @spec update(%Intent{}, attrs :: map) :: {:ok, Intent.t()} | {:error, Changeset.t()}
   def update(%Intent{} = intent, attrs) do
-    do_update(intent, attrs, &Intent.update_changeset(&1, attrs))
-  end
-
-  def update(%Intent{} = intent, %{id: _id} = context, attrs) do
-    do_update(intent, attrs, &Intent.update_changeset(&1, context, attrs))
-  end
-
-  def do_update(intent, attrs, changeset_fn) do
-    attrs = parse_measurement_attrs(attrs)
+    attrs = prepare_attrs(attrs)
 
     Repo.transact_with(fn ->
-      intent =
-        Repo.preload(intent, [
-          :available_quantity,
-          :resource_quantity,
-          :effort_quantity,
-          :at_location
-        ])
-
-      cs =
-        intent
-        |> changeset_fn.()
-        |> Intent.change_measures(attrs)
-
-      with {:ok, cs} <- change_at_location(cs, attrs),
-           {:ok, cs} <- change_agent(cs, attrs),
-           {:ok, cs} <- change_action(cs, attrs),
-           {:ok, intent} <- Repo.update(cs),
+      with {:ok, intent} <- Repo.update(Intent.update_changeset(intent, attrs)),
            {:ok, intent} <- ValueFlows.Util.try_tag_thing(nil, intent, attrs),
            :ok <- publish(intent, :updated) do
-        {:ok, intent}
+        {:ok, preload_all(intent)}
       end
     end)
   end
 
   def soft_delete(%Intent{} = intent) do
     Repo.transact_with(fn ->
-      with {:ok, intent} <- Common.soft_delete(intent),
+      with {:ok, intent} <- Common.Deletion.soft_delete(intent),
            :ok <- publish(intent, :deleted) do
         {:ok, intent}
       end
@@ -251,50 +193,26 @@ defmodule ValueFlows.Planning.Intent.Intents do
     :ok
   end
 
-  defp change_agent(changeset, attrs) do
-    with {:ok, changeset} <- change_provider(changeset, attrs) do
-      change_receiver(changeset, attrs)
-    end
+  defp prepare_attrs(attrs) do
+    attrs
+    |> maybe_put(:action_id, attr_get_id(attrs, :action))
+    |> maybe_put(:context_id,
+      attrs |> Map.get(:in_scope_of) |> CommonsPub.Common.maybe(&List.first/1)
+    )
+    |> maybe_put(:at_location_id, attr_get_id(attrs, :at_location))
+    |> maybe_put(:provider_id, attr_get_id(attrs, :provider))
+    |> maybe_put(:receiver_id, attr_get_id(attrs, :receiver))
+    |> maybe_put(:input_of_id, attr_get_id(attrs, :input_of))
+    |> maybe_put(:output_of_id, attr_get_id(attrs, :output_of))
+    |> maybe_put(:resource_conforms_to_id, attr_get_id(attrs, :resource_conforms_to))
+    |> maybe_put(:resource_inventoried_as_id, attr_get_id(attrs, :resource_inventoried_as))
+    |> parse_measurement_attrs()
   end
-
-  defp change_provider(changeset, %{provider: provider_id}) do
-    with {:ok, pointer} <- Pointers.one(id: provider_id) do
-      provider = Pointers.follow!(pointer)
-      {:ok, Intent.change_provider(changeset, provider)}
-    end
-  end
-
-  defp change_provider(changeset, _attrs), do: {:ok, changeset}
-
-  defp change_receiver(changeset, %{receiver: receiver_id}) do
-    with {:ok, pointer} <- Pointers.one(id: receiver_id) do
-      receiver = Pointers.follow!(pointer)
-      {:ok, Intent.change_receiver(changeset, receiver)}
-    end
-  end
-
-  defp change_receiver(changeset, _attrs), do: {:ok, changeset}
-
-  defp change_action(changeset, %{action: action_id}) do
-    with {:ok, action} <- Actions.action(action_id) do
-      {:ok, Intent.change_action(changeset, action)}
-    end
-  end
-
-  defp change_action(changeset, _attrs), do: {:ok, changeset}
-
-  defp change_at_location(changeset, %{at_location: id}) do
-    with {:ok, location} <- Geolocations.one([:default, id: id]) do
-      {:ok, Intent.change_at_location(changeset, location)}
-    end
-  end
-
-  defp change_at_location(changeset, _attrs), do: {:ok, changeset}
 
   defp parse_measurement_attrs(attrs) do
     Enum.reduce(attrs, %{}, fn {k, v}, acc ->
       if is_map(v) and Map.has_key?(v, :has_unit) do
-        v = ValueFlows.Util.map_key_replace(v, :has_unit, :unit_id)
+        v = CommonsPub.Common.map_key_replace(v, :has_unit, :unit_id)
         # I have no idea why the numerical value isn't auto converted
         Map.put(acc, k, v)
       else

@@ -18,7 +18,7 @@ defmodule CommonsPub.Web.GraphQL.Collections.MutationsTest do
 
         vars = %{
           collection: ci,
-          community_id: comm.id,
+          context_id: comm.id,
           icon: %{url: "https://via.placeholder.com/150.png"}
         }
 
@@ -35,7 +35,7 @@ defmodule CommonsPub.Web.GraphQL.Collections.MutationsTest do
       comm = fake_community!(bob)
       ci = collection_input()
       q = create_collection_mutation()
-      vars = %{collection: ci, community_id: comm.id}
+      vars = %{collection: ci, context_id: comm.id}
       assert err = grumble_post_errors(q, json_conn(), vars)
     end
   end

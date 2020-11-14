@@ -80,7 +80,7 @@ defmodule CommonsPub.Collections.Web.CollectionsHelper do
 
     ids = Enum.map(edges, & &1.context_id)
 
-    collections = contexts_fetch!(ids)
+    collections = CommonsPub.Contexts.contexts_fetch!(ids)
 
     collections =
       if(collections) do

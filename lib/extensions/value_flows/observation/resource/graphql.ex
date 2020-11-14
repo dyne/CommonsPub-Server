@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Observation.EconomicResource.GraphQL do
-
   # default to 100 km radius
   @radius_default_distance 100_000
 
   require Logger
-  # import ValueFlows.Util, only: [maybe_put: 3]
+
 
   alias CommonsPub.{
     # Activities,
@@ -17,7 +16,6 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
 
   alias CommonsPub.GraphQL.{
     ResolveField,
-    # ResolveFields,
     # ResolvePage,
     ResolvePages,
     ResolveRootPage,
@@ -77,8 +75,29 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
     EconomicResources.many([:default])
   end
 
+  def track(%{id: id}, _, info) do
+    ResolveField.run(%ResolveField{
+      module: __MODULE__,
+      fetcher: :fetch_track_resource,
+      context: id,
+      info: info
+    })
+  end
+
+  def track(_, _, _), do: {:ok, nil}
+
+  def trace(%{id: id}, _, info) do
+    ResolveField.run(%ResolveField{
+      module: __MODULE__,
+      fetcher: :fetch_trace_resource,
+      context: id,
+      info: info
+    })
+  end
+  def trace(_, _, _), do: {:ok, nil}
+
   def resources_filtered(page_opts, _ \\ nil) do
-    IO.inspect(resources_filtered: page_opts)
+    # IO.inspect(resources_filtered: page_opts)
     resources_filter(page_opts, [])
   end
 
@@ -132,7 +151,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
          } = page_opts,
          filters_acc
        ) do
-    IO.inspect(geo_with_point: page_opts)
+    # IO.inspect(geo_with_point: page_opts)
 
     resources_filter_next(
       :geolocation,
@@ -153,7 +172,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
          } = page_opts,
          filters_acc
        ) do
-    IO.inspect(geo_with_address: page_opts)
+    # IO.inspect(geo_with_address: page_opts)
 
     with {:ok, coords} <- Geocoder.call(address) do
       # IO.inspect(coords)
@@ -188,7 +207,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
          } = page_opts,
          filters_acc
        ) do
-    IO.inspect(geo_without_distance: page_opts)
+    # IO.inspect(geo_without_distance: page_opts)
 
     resources_filter(
       Map.merge(
@@ -209,7 +228,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
          _,
          filters_acc
        ) do
-    IO.inspect(filters_query: filters_acc)
+    # IO.inspect(filters_query: filters_acc)
 
     # finally, if there's no more known params to acumulate, query with the filters
     EconomicResources.many(filters_acc)
@@ -217,8 +236,8 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
 
   defp resources_filter_next(param_remove, filter_add, page_opts, filters_acc)
        when is_list(param_remove) and is_list(filter_add) do
-    IO.inspect(resources_filter_next: param_remove)
-    IO.inspect(resources_filter_add: filter_add)
+    # IO.inspect(resources_filter_next: param_remove)
+    # IO.inspect(resources_filter_add: filter_add)
 
     resources_filter(Map.drop(page_opts, param_remove), filters_acc ++ filter_add)
   end
@@ -244,8 +263,12 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
     ])
   end
 
-  def agent_resources(%{id: agent}, %{} = page_opts, info) do
-    resources_filtered(%{agent: agent})
+  def agent_resources(%{id: agent}, %{} = _page_opts, _info) do
+    EconomicResources.many([agent_id: agent])
+  end
+
+  def agent_resources(_, _page_opts, _info) do
+    {:ok, nil}
   end
 
   def agent_resources_edge(%{agent: agent}, %{} = page_opts, info) do
@@ -271,6 +294,33 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
     )
   end
 
+  def spec_conforms_to_resources(%{conforms_to: spec_id}, %{} = _page_opts, _info) do
+    EconomicResources.many([conforms_to: spec_id])
+  end
+
+  def spec_conforms_to_resources_edge(%{conforms_to: spec_id}, %{} = page_opts, info) do
+    ResolvePages.run(%ResolvePages{
+      module: __MODULE__,
+      fetcher: :fetch_spec_conforms_to_resources_edge,
+      context: spec_id,
+      page_opts: page_opts,
+      info: info
+    })
+  end
+
+  def fetch_spec_conforms_to_resources_edge(page_opts, info, ids) do
+    list_resources(
+      page_opts,
+      [
+        :default,
+        conforms_to: ids,
+        user: GraphQL.current_user(info)
+      ],
+      nil,
+      nil
+    )
+  end
+
   def list_resources(page_opts, base_filters, _data_filters, _cursor_type) do
     FetchPage.run(%FetchPage{
       queries: Queries,
@@ -287,7 +337,7 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
       queries: ValueFlows.Observation.EconomicResource.Queries,
       query: ValueFlows.Observation.EconomicResource,
       # preload: [:primary_accountable, :receiver, :tags],
-      # cursor_fn: EconomicResources.cursor(:followers),
+      cursor_fn:  & &1.id,
       page_opts: page_opts,
       base_filters: [
         :default,
@@ -308,14 +358,46 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQL do
     {:ok, nil}
   end
 
-
-  def track(resource, _, _) do
-    EconomicResources.track(resource)
+  def fetch_unit_of_effort_edge(%{unit_of_effort_id: id} = thing, _, info)
+    when is_binary(id) do
+      thing = Repo.preload(thing, :unit_of_effort)
+      {:ok, Map.get(thing, :unit_of_effort)}
   end
 
-  def trace(resource, _, _) do
-    EconomicResources.trace(resource)
+  def fetch_unit_of_effort_edge(_, _, _) do
+    {:ok, nil}
   end
+
+  def fetch_contained_in_edge(%{contained_in_id: id} = thing, _, info)
+    when is_binary(id) do
+    thing = Repo.preload(thing, :contained_in)
+    {:ok, Map.get(thing, :contained_in)}
+  end
+
+  def fetch_contained_in_edge(_, _, _) do
+    {:ok, nil}
+  end
+
+  def fetch_conforms_to_edge(%{conforms_to_id: id} = thing, _, _) when is_binary(id) do
+    thing = Repo.preload(thing, :conforms_to)
+    {:ok, Map.get(thing, :conforms_to)}
+  end
+
+  def fetch_conforms_to_edge(_, _, _), do: {:ok, nil}
+
+  def fetch_track_resource(_, id) do
+    EconomicResources.track(id)
+  end
+
+  def fetch_trace_resource(_, id) do
+    EconomicResources.trace(id)
+  end
+
+  def fetch_state_edge(%{state_id: id} = thing, _, _) when is_binary(id) do
+    thing = EconomicResources.preload_state(thing)
+    {:ok, Map.get(thing, :state)}
+  end
+  def fetch_state_edge(_, _, _), do: {:ok, nil}
 
 
   def create_resource(%{new_inventoried_resource: resource_attrs}, info) do
