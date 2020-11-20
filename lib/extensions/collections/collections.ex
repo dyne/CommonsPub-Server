@@ -23,7 +23,7 @@ defmodule CommonsPub.Collections do
   alias CommonsPub.Users.User
   alias CommonsPub.Workers.APPublishWorker
 
-  alias CommonsPub.Utils.Web.CommonHelper
+  # alias CommonsPub.Utils.Web.CommonHelper
 
   def cursor(:followers), do: &[&1.follower_count, &1.id]
 

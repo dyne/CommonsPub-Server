@@ -409,6 +409,28 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsResourcesTest do
                  unit
                )
     end
+
+    test "if transfering a resource without consent, stop" do
+      user1 = fake_user!()
+      user2 = fake_user!()
+
+      unit = fake_unit!(user1)
+
+      resource_inventoried_as = fake_economic_resource!(user1, %{}, unit)
+      to_resource_inventoried_as = fake_economic_resource!(user2, %{}, unit)
+
+      assert {:error, e} =
+               fake_economic_event!(
+                 user2,
+                 %{
+                   to_resource_inventoried_as: to_resource_inventoried_as.id,
+                   resource_inventoried_as: resource_inventoried_as.id,
+                   action: "transfer-custody"
+                 },
+                 unit
+               )
+    end
+
   end
 
   describe "DecrementIncrement with transfer-all-rights" do

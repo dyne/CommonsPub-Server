@@ -21,7 +21,6 @@ defmodule ValueFlows.Proposal.Proposals do
 
   alias ValueFlows.Planning.Intent
 
-  @schema CommonsPub.Web.GraphQL.Schema
 
   def cursor(), do: &[&1.id]
   def test_cursor(), do: &[&1["id"]]
@@ -236,7 +235,7 @@ defmodule ValueFlows.Proposal.Proposals do
   end
 
   def ap_publish_activity(activity_name, proposal) do
-    ValueFlows.Util.ap_publish_activity(activity_name, :proposal, proposal, 3, [:published_in])
+    ValueFlows.Util.Federation.ap_publish_activity(activity_name, :proposal, proposal, 3, [:published_in])
   end
 
   defp prepare_attrs(attrs) do

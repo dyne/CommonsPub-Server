@@ -39,7 +39,7 @@ defmodule ValueFlows.Knowledge.ResourceSpecification do
 
     field(:deleted_at, :utc_datetime_usec)
 
-    has_many(:conforming_resources, ValueFlows.Observation.EconomicResource, foreign_key: :conforms_to)
+    has_many(:conforming_resources, ValueFlows.Observation.EconomicResource, foreign_key: :conforms_to_id)
 
     many_to_many(:tags, CommonsPub.Tag.Taggable,
       join_through: "tags_things",

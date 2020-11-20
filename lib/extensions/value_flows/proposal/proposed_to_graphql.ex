@@ -37,7 +37,7 @@ defmodule ValueFlows.Proposal.ProposedToGraphQL do
 
   def fetch_proposed_edge(%{proposed_id: id} = thing, _, _)
       when is_binary(id) do
-    thing = Repo.preload(thing, :proposed)
+    thing = CommonsPub.Repo.preload(thing, :proposed)
     {:ok, Map.get(thing, :proposed)}
   end
 
