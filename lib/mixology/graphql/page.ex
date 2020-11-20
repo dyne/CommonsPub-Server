@@ -40,6 +40,11 @@ defmodule CommonsPub.GraphQL.Page do
     paginate_after(false, edges, limit, cursor_fn)
   end
 
+  # default limit
+  defp paginate(edges, _, cursor_fn) do
+    paginate_after(false, edges, 10, cursor_fn)
+  end
+
   defp paginate_after(prev, edges, limit, cursor_fn) do
     if Enum.count(edges) > limit,
       do: pagination_result(prev, true, Enum.take(edges, limit), cursor_fn),

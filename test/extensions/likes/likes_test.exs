@@ -3,7 +3,7 @@ defmodule CommonsPub.LikesTest do
   use CommonsPub.DataCase, async: true
   use Oban.Testing, repo: CommonsPub.Repo
   require Ecto.Query
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.Likes
   alias CommonsPub.Common.{DeletionError, NotFoundError}
   alias CommonsPub.Utils.Simulation

@@ -2,7 +2,7 @@
 defmodule CommonsPub.ActivitiesTest do
   use CommonsPub.DataCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
 
   alias CommonsPub.Activities
   alias CommonsPub.Activities.Activity

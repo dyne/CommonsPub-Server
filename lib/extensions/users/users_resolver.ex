@@ -265,7 +265,7 @@ defmodule CommonsPub.Web.GraphQL.UsersResolver do
     ResolvePage.run(%ResolvePage{
       module: __MODULE__,
       fetcher: :fetch_user_inbox_edge,
-      context: user.inbox_id,
+      context: CommonsPub.Feeds.inbox_id(user),
       page_opts: page_opts,
       info: info
     })

@@ -2,7 +2,7 @@
 defmodule CommonsPub.ActivityPub.IntegrationTest do
   use CommonsPub.Web.ConnCase
   import ActivityPub.Factory
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import Tesla.Mock
   alias CommonsPub.ActivityPub.Adapter
 

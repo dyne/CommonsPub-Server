@@ -3,7 +3,7 @@ defmodule CommonsPub.CommonTest do
   use CommonsPub.DataCase, async: true
   use Oban.Testing, repo: CommonsPub.Repo
   require Ecto.Query
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
 
   setup do
     {:ok, %{user: fake_user!()}}

@@ -5,7 +5,7 @@ defmodule CommonsPub.Web.GraphQL.UsersTest do
   import CommonsPub.Web.Test.GraphQLAssertions
   import CommonsPub.Web.Test.GraphQLFields
   import CommonsPub.Utils.Trendy
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import Grumble
   import Zest
   alias CommonsPub.Utils.Simulation

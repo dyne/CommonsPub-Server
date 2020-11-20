@@ -5,7 +5,7 @@ defmodule Measurement.UnitsTest do
   import Measurement.Test.Faking
 
   import CommonsPub.Utils.Trendy
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import CommonsPub.Web.Test.Orderings
   import CommonsPub.Web.Test.Automaton
   import CommonsPub.Common.{Enums, NotFoundError}

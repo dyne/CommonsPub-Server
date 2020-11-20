@@ -4,7 +4,7 @@ defmodule ValueFlows.Simulate do
 
   import CommonsPub.Utils.Simulation
   import CommonsPub.Utils.Trendy
-  # import CommonsPub.Test.Faking
+  # import CommonsPub.Utils.Simulation
 
   import Measurement.Simulate
 
@@ -59,7 +59,7 @@ defmodule ValueFlows.Simulate do
 
   def fake_agent!(overrides \\ %{}, opts \\ []) when is_map(overrides) and is_list(opts) do
     ValueFlows.Agent.Agents.character_to_agent(
-      a_fake_user!(ValueFlows.Agent.Agents.agent_to_character(agent(overrides)))
+      fake_user!(ValueFlows.Agent.Agents.agent_to_character(agent(overrides)))
     )
   end
 

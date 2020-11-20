@@ -1,7 +1,7 @@
 defmodule ValueFlows.TrackAndTraceTest do
   use CommonsPub.DataCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import CommonsPub.Tag.Simulate
 
   import CommonsPub.Utils.{Trendy, Simulation}

@@ -3,7 +3,7 @@ defmodule CommonsPub.FollowsTest do
   use CommonsPub.DataCase, async: true
   use Oban.Testing, repo: CommonsPub.Repo
   require Ecto.Query
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.Follows
   alias CommonsPub.Utils.Simulation
 

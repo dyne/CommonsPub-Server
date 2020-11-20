@@ -7,6 +7,5 @@ alias CommonsPub.ReleaseTasks
 import CommonsPub.ReleaseTasks
 
 alias CommonsPub.Utils.Simulation
-alias CommonsPub.Test.Faking
 
 IO.puts("[.iex.exs] aliased a few modules\n")

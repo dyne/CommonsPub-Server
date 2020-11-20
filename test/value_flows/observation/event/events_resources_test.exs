@@ -1,7 +1,7 @@
 defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsResourcesTest do
   use CommonsPub.Web.ConnCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import Measurement.Test.Faking
   import CommonsPub.Tag.Simulate
 

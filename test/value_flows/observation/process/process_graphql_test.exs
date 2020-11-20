@@ -3,7 +3,6 @@ defmodule ValueFlows.Observation.Process.GraphQLTest do
 
   import CommonsPub.Utils.Trendy, only: [some: 2]
   import CommonsPub.Utils.Simulation
-  import CommonsPub.Test.Faking
   alias Grumble.PP
   import Grumble
   import ValueFlows.Simulate

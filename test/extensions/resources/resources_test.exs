@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule CommonsPub.ResourcesTest do
   use CommonsPub.DataCase
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.{Resources, Repo}
   alias CommonsPub.Utils.Simulation
 

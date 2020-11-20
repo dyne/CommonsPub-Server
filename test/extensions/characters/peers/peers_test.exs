@@ -2,7 +2,7 @@ defmodule CommonsPub.PeersTest do
   use CommonsPub.DataCase
   alias CommonsPub.Peers
   # alias CommonsPub.Peers.Peer
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.Utils.Simulation
 
   describe "CRUD" do

@@ -4,7 +4,7 @@ defmodule CommonsPub.Web.GraphQL.ResourceTest do
   import CommonsPub.Web.Test.GraphQLAssertions
   import CommonsPub.Web.Test.GraphQLFields
   import CommonsPub.Utils.Trendy
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import Zest
 
   describe "resource" do

@@ -4,7 +4,7 @@ defmodule CommonsPub.Web.GraphQL.Users.MutationsTest do
   import CommonsPub.Utils.Simulation
   import CommonsPub.Web.Test.GraphQLAssertions
   import CommonsPub.Web.Test.GraphQLFields
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.{Access, Users}
 
   describe "create_user" do

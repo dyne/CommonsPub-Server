@@ -3,7 +3,6 @@ defmodule ValueFlows.Knowledge.ProcessSpecification.GraphQLTest do
 
   import CommonsPub.Utils.Trendy, only: [some: 2]
   import CommonsPub.Utils.Simulation
-  import CommonsPub.Test.Faking
 
   import ValueFlows.Simulate
   import ValueFlows.Test.Faking

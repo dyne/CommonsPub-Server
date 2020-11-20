@@ -4,8 +4,8 @@ defmodule Geolocation.Simulate do
   alias Geolocation.Geolocations
 
   def mappable_address do
-    # guaranteed random
-    "1221 Williamson St., Madison, WI 53703"
+    # avoid using because fake addresses cannot be geocoded
+    Faker.Address.street_address() <> Faker.Address.city() <> Faker.Address.country()
   end
 
   def geolocation(base \\ %{}) do

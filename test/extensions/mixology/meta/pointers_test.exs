@@ -3,7 +3,7 @@ defmodule CommonsPub.Meta.PointersTest do
   use ExUnit.Case, async: true
 
   import ExUnit.Assertions
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.{Access, Repo}
 
   alias CommonsPub.Meta.{

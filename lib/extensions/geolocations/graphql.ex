@@ -13,9 +13,10 @@ defmodule Geolocation.GraphQL do
     # ResolvePage,
     # ResolvePages,
     ResolveField,
-    # ResolveFields,
+    ResolveFields,
     ResolveRootPage,
-    FetchPage
+    FetchPage,
+    FetchFields
     # FetchPages,
     # CommonResolver
   }
@@ -88,7 +89,31 @@ defmodule Geolocation.GraphQL do
     {:ok, DateTime.utc_now()}
   end
 
+  def geolocation_edge(%{spatial_thing_id: id}, _, info) do
+    geolocation_edge(%{geolocation_id: id}, nil, info)
+  end
 
+  def geolocation_edge(%{geolocation_id: id}, _, info) do
+    ResolveFields.run(%ResolveFields{
+      module: __MODULE__,
+      fetcher: :fetch_geolocation_edge,
+      context: id,
+      info: info
+    })
+  end
+
+  def geolocation_edge(_, _, _) do
+    {:ok, nil}
+  end
+
+  def fetch_geolocation_edge(_, ids) do
+    FetchFields.run(%FetchFields{
+      queries: Geolocation.Queries,
+      query: Geolocation,
+      group_fn: & &1.id,
+      filters: [:default, id: ids]
+    })
+  end
 
   defp default_outbox_query_contexts() do
     CommonsPub.Config.get!(Geolocations)

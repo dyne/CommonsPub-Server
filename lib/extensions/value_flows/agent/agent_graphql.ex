@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Agent.GraphQL do
-  # alias CommonsPub.Web.GraphQL.{CommonResolver}
+  alias CommonsPub.GraphQL
 
   # alias CommonsPub.Utils.Simulation
   # alias ValueFlows.Simulate
@@ -89,6 +89,12 @@ defmodule ValueFlows.Agent.GraphQL do
 
   def agent(%{id: id}, info) do
     {:ok, ValueFlows.Agent.Agents.agent(id, CommonsPub.GraphQL.current_user(info))}
+  end
+
+  def my_agent(_, info) do
+    with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info) do
+      {:ok, user |> ValueFlows.Agent.Agents.character_to_agent()}
+    end
   end
 
   def mutate_person(_, _) do

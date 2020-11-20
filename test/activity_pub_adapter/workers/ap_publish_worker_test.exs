@@ -2,13 +2,13 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
   use CommonsPub.DataCase
 
   import ActivityPub.Factory
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.Workers.APPublishWorker
 
   describe "false locality checks" do
     test "it doesn't federate remote resource" do
       actor = actor()
-      collection = collection()
+      collection = CommonsPub.Utils.Simulation.collection()
 
       object = %{
         "name" => "resource",
@@ -45,7 +45,7 @@ defmodule CommonsPub.Workers.APPpublishWorkerTest do
     end
 
     test "it doesn't federate remote communities" do
-      community = community()
+      community = CommonsPub.Utils.Simulation.community()
       {:ok, community} = CommonsPub.Communities.one([:default, username: community.username])
 
       assert :ignored = APPublishWorker.perform(%{args: %{"context_id" => community.id, "op" => "create"}})

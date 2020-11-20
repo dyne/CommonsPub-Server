@@ -4,7 +4,7 @@ defmodule ValueFlows.Proposal.ProposalsTest do
 
   import CommonsPub.Utils.Simulation
   import CommonsPub.Utils.Trendy, only: [some: 2]
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
 
   import Geolocation.Simulate
 

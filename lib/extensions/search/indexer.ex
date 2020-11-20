@@ -80,9 +80,11 @@ defmodule CommonsPub.Search.Indexer do
 
   def index_objects(objects, index_name, init_index_first) when is_list(objects) do
     # IO.inspect(objects)
-    # FIXME - should create the index only once
-    if init_index_first, do: init_index(index_name, true)
-    CommonsPub.Search.Meili.put(objects, index_name <> "/documents")
+    if System.get_env("SEARCH_INDEXING_DISABLED") !="true" do
+      # FIXME - should create the index only once
+      if init_index_first, do: init_index(index_name, true)
+      CommonsPub.Search.Meili.put(objects, index_name <> "/documents")
+    end
   end
 
   # index something in an existing index

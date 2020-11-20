@@ -3,7 +3,7 @@ defmodule CommonsPub.Web.GraphQL.LikesTest do
   use CommonsPub.Web.ConnCase, async: true
   alias CommonsPub.Likes
   # import CommonsPub.MediaProxy.URLBuilder, only: [encode: 1]
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import CommonsPub.Web.Test.ConnHelpers
   import CommonsPub.Web.Test.GraphQLAssertions
   import CommonsPub.Web.Test.GraphQLFields

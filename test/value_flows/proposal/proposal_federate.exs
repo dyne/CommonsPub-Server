@@ -3,7 +3,6 @@ defmodule ValueFlows.Proposal.FederateTest do
 
   import CommonsPub.Utils.Trendy, only: [some: 2]
   import CommonsPub.Utils.Simulation
-  import CommonsPub.Test.Faking
 
   import Geolocation.Simulate
 

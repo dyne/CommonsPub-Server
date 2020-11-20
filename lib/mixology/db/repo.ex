@@ -109,6 +109,8 @@ defmodule CommonsPub.Repo do
     maybe_do_preload(obj, preloads)
   end
 
+  def maybe_do_preload(%Ecto.Association.NotLoaded{}, _), do: nil
+
   def maybe_do_preload(obj, preloads) when is_struct(obj) do
     CommonsPub.Repo.preload(obj, preloads)
   rescue
@@ -119,7 +121,5 @@ defmodule CommonsPub.Repo do
       obj
   end
 
-  def maybe_do_preload(obj, _) do
-    obj
-  end
+  def maybe_do_preload(obj, _), do: obj
 end

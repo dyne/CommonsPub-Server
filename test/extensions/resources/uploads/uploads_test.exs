@@ -2,7 +2,7 @@
 defmodule CommonsPub.UploadsTest do
   use CommonsPub.DataCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.Utils.Simulation
   alias CommonsPub.Uploads
   alias CommonsPub.Uploads.{FileDenied, Storage}

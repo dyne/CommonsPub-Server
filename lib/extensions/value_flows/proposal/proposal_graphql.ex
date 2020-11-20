@@ -219,6 +219,16 @@ defmodule ValueFlows.Proposal.GraphQL do
     proposals_filter_next([param_remove], filter_add, page_opts, filters_acc)
   end
 
+
+  def agent_proposals(%{id: agent}, %{} = _page_opts, _info) do
+    proposals_filtered(%{agent: agent})
+  end
+
+  def agent_proposals(_, _page_opts, _info) do
+    {:ok, nil}
+  end
+
+
   def create_proposal(%{proposal: attrs}, info) do
     with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),
          proposal_attrs = Map.merge(attrs, %{is_public: true}),

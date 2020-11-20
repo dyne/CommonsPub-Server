@@ -2,7 +2,7 @@
 defmodule Geolocation.GraphQLTest do
   use CommonsPub.Web.ConnCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import CommonsPub.Utils.Trendy, only: [some: 2]
 
   import Geolocation.Test.Faking

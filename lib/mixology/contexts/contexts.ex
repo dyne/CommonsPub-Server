@@ -230,29 +230,32 @@ defmodule CommonsPub.Contexts do
     do: [inbox, outbox]
 
   defp context_feeds_list(%CommonsPub.Resources.Resource{} = r) do
-    r = Repo.preload(r, collection: [:character, community: :character])
+    # FIXME
+    r = Repo.maybe_preload(r, [collection: [:character, community: :character]])
 
     [
       CommonsPub.Feeds.outbox_id(r.collection),
-      CommonsPub.Feeds.outbox_id(Map.get(r.collection, :community))
+      CommonsPub.Feeds.outbox_id(CommonsPub.Common.maybe_get(r.collection, :community))
     ]
   end
 
   defp context_feeds_list(%CommonsPub.Collections.Collection{} = c) do
-    c = Repo.preload(c, [:character, context: :character])
+    # FIXME
+    c = Repo.maybe_preload(c, [:character, context: :character])
 
     [
       CommonsPub.Feeds.outbox_id(c),
-      CommonsPub.Feeds.outbox_id(Map.get(Map.get(c, :context, %{}), :character))
+      CommonsPub.Feeds.outbox_id(CommonsPub.Common.maybe_get(c, :context))
     ]
   end
 
   defp context_feeds_list(%CommonsPub.Communities.Community{} = c) do
-    c = Repo.preload(c, :character, context: :character)
+    # FIXME
+    c = Repo.maybe_preload(c, [:character, context: :character])
 
     [
       CommonsPub.Feeds.outbox_id(c),
-      CommonsPub.Feeds.outbox_id(Map.get(Map.get(c, :context, %{}), :character))
+      CommonsPub.Feeds.outbox_id(CommonsPub.Common.maybe_get(c, :context))
     ]
   end
 

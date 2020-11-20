@@ -3,7 +3,7 @@ defmodule CommonsPub.Threads.CommentsTest do
   use CommonsPub.DataCase, async: true
   use Oban.Testing, repo: CommonsPub.Repo
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.Access.NotPermittedError
   alias CommonsPub.Common.NotFoundError
   alias CommonsPub.Threads

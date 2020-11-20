@@ -4,7 +4,7 @@ defmodule CommonsPub.Web.GraphQL.Communities.MutationsTest do
   import CommonsPub.Utils.Simulation
   import CommonsPub.Web.Test.GraphQLAssertions
   import CommonsPub.Web.Test.GraphQLFields
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
 
   describe "create_community" do
     test "works for a user or instance admin" do

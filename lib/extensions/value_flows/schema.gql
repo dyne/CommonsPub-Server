@@ -83,6 +83,11 @@ interface Agent {
   plans(filter: agentPlanSearchParams): [Plan!]
   commitments(filter: agentCommitmentSearchParams): [Commitment!]
   intents(filter: agentIntentSearchParams): [Intent!]
+
+  """ 
+  added for cpub 
+  """
+  proposals: [Proposal!]
   agentType: AgentType
   canonicalUrl: String
   displayUsername: String
@@ -2317,6 +2322,7 @@ type Organization implements Agent {
   intents(filter: agentIntentSearchParams): [Intent!]
 
   ## added for CPub:
+  proposals: [Proposal!]
   agentType: AgentType
   canonicalUrl: String
   displayUsername: String
@@ -2368,6 +2374,7 @@ type Person implements Agent {
   intents(filter: agentIntentSearchParams): [Intent!]
 
   ## added for CPub:
+  proposals: [Proposal!]
   agentType: AgentType
   canonicalUrl: String
   displayUsername: String

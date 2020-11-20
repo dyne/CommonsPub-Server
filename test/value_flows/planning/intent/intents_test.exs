@@ -3,7 +3,6 @@ defmodule ValueFlows.Planning.Intent.IntentsTest do
   use CommonsPub.Web.ConnCase, async: true
 
   import CommonsPub.Utils.Simulation
-  import CommonsPub.Test.Faking
   import CommonsPub.Tag.Simulate
   import CommonsPub.Utils.Trendy, only: [some: 2]
 

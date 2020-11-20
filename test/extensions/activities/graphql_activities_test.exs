@@ -5,7 +5,7 @@ defmodule CommonsPub.Web.GraphQL.ActivitiesSchemaTest do
   # alias CommonsPub.Utils.Simulation
   # import CommonsPub.Web.Test.GraphQLAssertions
   # import CommonsPub.Web.Test.GraphQLFields
-  # import CommonsPub.Test.Faking
+  # import CommonsPub.Utils.Simulation
   # alias CommonsPub.Users
   # alias CommonsPub.Activities.Activity
 

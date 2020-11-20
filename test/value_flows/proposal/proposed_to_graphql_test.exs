@@ -2,7 +2,6 @@ defmodule ValueFlows.Proposal.ProposedToGraphQLTest do
   use CommonsPub.Web.ConnCase, async: true
 
   import CommonsPub.Utils.Simulation
-  import CommonsPub.Test.Faking
 
   import ValueFlows.Simulate
   import ValueFlows.Test.Faking

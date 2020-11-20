@@ -3,7 +3,7 @@
 defmodule CommonsPub.Web.GraphQL.AccessTest do
   use CommonsPub.Web.ConnCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import CommonsPub.Web.Test.GraphQLFields
   import Grumble
   alias CommonsPub.Utils.Simulation

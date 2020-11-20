@@ -18,8 +18,8 @@ defmodule ValueFlows.Hydration do
       display_username: [
         resolve: &CommonsPub.Characters.GraphQL.Resolver.display_username_edge/3
       ],
-      image: [
-        resolve: &UploadResolver.image_content_edge/3
+      proposals: [
+        resolve: &ValueFlows.Proposal.GraphQL.agent_proposals/3
       ],
       intents: [
         resolve: &ValueFlows.Planning.Intent.GraphQL.agent_intents/3
@@ -335,6 +335,9 @@ defmodule ValueFlows.Hydration do
         # ],
         agent: [
           resolve: &ValueFlows.Agent.GraphQL.agent/2
+        ],
+        my_agent: [
+          resolve: &ValueFlows.Agent.GraphQL.my_agent/2
         ],
         person: [
           resolve: &ValueFlows.Agent.GraphQL.person/2

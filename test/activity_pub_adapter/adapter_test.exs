@@ -1,5 +1,5 @@
 defmodule CommonsPub.ActivityPub.AdapterTest do
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   use CommonsPub.DataCase
 
   describe "fetching local actors by id" do

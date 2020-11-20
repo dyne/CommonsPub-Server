@@ -20,8 +20,11 @@ defmodule CommonsPub.Tag.Simulate do
   def fake_category!(user, parent_category \\ nil, overrides \\ %{})
 
   def fake_category!(user, nil, overrides) do
-    {:ok, category} = Categories.create(user, category(overrides))
-    category
+    with {:ok, category} <- Categories.create(user, category(overrides)) do
+      category
+    else _ ->
+      fake_category!(user, nil, overrides)
+    end
   end
 
   def fake_category!(user, parent_category, overrides) do

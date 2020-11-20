@@ -4,7 +4,7 @@ defmodule CommonsPub.Web.GraphQL.Collections.MutationsTest do
   import CommonsPub.Utils.Simulation
   import CommonsPub.Web.Test.GraphQLAssertions
   import CommonsPub.Web.Test.GraphQLFields
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
 
   describe "create_collection" do
     test "works for the community creator, randomer and instance admin" do

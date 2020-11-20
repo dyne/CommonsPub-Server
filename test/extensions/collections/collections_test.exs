@@ -2,7 +2,7 @@
 defmodule CommonsPub.CollectionsTest do
   use CommonsPub.DataCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.Common.NotFoundError
   alias CommonsPub.{Collections, Communities}
   alias CommonsPub.Utils.Simulation

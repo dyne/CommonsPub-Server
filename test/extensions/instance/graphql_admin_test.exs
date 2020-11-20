@@ -2,7 +2,7 @@
 defmodule CommonsPub.Web.GraphQL.AdminTest do
   use CommonsPub.Web.ConnCase
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import ActivityPub.Factory
   alias CommonsPub.Utils.Simulation
   import CommonsPub.Web.Test.GraphQLFields

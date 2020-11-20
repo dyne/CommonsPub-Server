@@ -2,7 +2,7 @@
 defmodule Geolocation.GeolocationsTest do
   use CommonsPub.Web.ConnCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
 
   import Geolocation.Test.Faking
   import Geolocation.Simulate

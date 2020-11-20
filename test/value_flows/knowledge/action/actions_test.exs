@@ -1,7 +1,7 @@
 defmodule ValueFlows.Knowledge.Action.ActionsTest do
   use CommonsPub.Web.ConnCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
 
   import ValueFlows.Simulate
   import ValueFlows.Test.Faking

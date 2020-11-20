@@ -4,7 +4,7 @@ defmodule CommonsPub.Mail.EmailTest do
   use CommonsPub.DataCase, async: true
 
   alias CommonsPub.Mail.Email
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias CommonsPub.Utils.Simulation
 
   setup do

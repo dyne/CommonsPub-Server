@@ -167,10 +167,18 @@ defmodule CommonsPub.Web.GraphQL.UsersSchema do
 
     @desc "A name field"
     field(:name, :string)
+
     @desc "Possibly biographical information"
     field(:summary, :string)
-    @desc "Free text"
+
+    @desc "Free text description of user's location. See also geolocation."
     field(:location, :string)
+
+    @desc "User's geo coordinates. See also location."
+    field :geolocation, :spatial_thing do
+      resolve(&Geolocation.GraphQL.geolocation_edge/3)
+    end
+
     @desc "A valid URL"
     field(:website, :string)
 
@@ -209,6 +217,7 @@ defmodule CommonsPub.Web.GraphQL.UsersSchema do
 
     @desc "When the user last updated their profile"
     field(:updated_at, non_null(:string))
+
     @desc "The last time the user did anything"
     field :last_activity, :string do
       resolve(&UsersResolver.last_activity_edge/3)

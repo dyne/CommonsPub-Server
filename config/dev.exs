@@ -100,7 +100,8 @@ config :commons_pub, CommonsPub.Repo,
   password: System.get_env("POSTGRES_PASSWORD", "postgres"),
   database: System.get_env("POSTGRES_DB", "commonspub_dev"),
   hostname: System.get_env("DATABASE_HOST", "localhost"),
-  pool_size: 10
+  pool_size: 15,
+  timeout: 60_000
 
 base_url = System.get_env("BASE_URL", "http://localhost:4000")
 

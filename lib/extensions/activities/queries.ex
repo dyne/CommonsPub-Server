@@ -112,6 +112,11 @@ defmodule CommonsPub.Activities.Queries do
   def filter(q, {:page, [desc: [created: %{limit: l}]]}),
     do: filter(q, order: [desc: :created], limit: l + 1)
 
+  # default limit (10)
+  def filter(q, {:page, [desc: [created: _]]}),
+    do: filter(q, order: [desc: :created], limit: 11)
+
+
   def filter(q, {:distinct, [desc: key]}) when is_atom(key),
     do: distinct(q, [activity: a], desc: field(a, ^key))
 

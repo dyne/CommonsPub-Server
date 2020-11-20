@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule Organisation.OrganisationsTest do
   use CommonsPub.Web.ConnCase, async: true
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
 
   import Organisation.Simulate
   import Organisation.Test.Faking

@@ -2,7 +2,7 @@
 defmodule CommonsPub.AccessTest do
   use CommonsPub.DataCase, async: true
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   alias Ecto.Changeset
   alias CommonsPub.Common.NotFoundError
   alias CommonsPub.Utils.Simulation

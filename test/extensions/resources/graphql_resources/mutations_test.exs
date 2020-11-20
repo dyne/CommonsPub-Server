@@ -4,7 +4,7 @@ defmodule CommonsPub.Web.GraphQL.Resources.MutationsTest do
   import CommonsPub.Utils.Simulation
   import CommonsPub.Web.Test.GraphQLAssertions
   import CommonsPub.Web.Test.GraphQLFields
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
   import Zest
 
   describe "create_resource" do

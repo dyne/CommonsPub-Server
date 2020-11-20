@@ -5,7 +5,7 @@ defmodule ValueFlows.Observation.EconomicEvent.EventsResourcesGraphQLTest do
   import CommonsPub.Utils.Simulation
   import CommonsPub.Tag.Simulate
 
-  import CommonsPub.Test.Faking
+  import CommonsPub.Utils.Simulation
 
   import Measurement.Simulate
   import Measurement.Test.Faking
