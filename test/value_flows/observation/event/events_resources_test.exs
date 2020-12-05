@@ -399,7 +399,7 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsResourcesTest do
       to_resource_inventoried_as = fake_economic_resource!(user, %{}, unit2)
 
       assert {:error, e} =
-               fake_economic_event!(
+               fake_economic_event(
                  user,
                  %{
                    to_resource_inventoried_as: to_resource_inventoried_as.id,
@@ -410,27 +410,73 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsResourcesTest do
                )
     end
 
-    test "if transfering a resource without consent, stop" do
-      user1 = fake_user!()
-      user2 = fake_user!()
+    test "if a third party tries transfering a resource without consent, stop" do
+      alice = fake_user!()
+      bob = fake_user!()
+      conan = fake_user!()
 
-      unit = fake_unit!(user1)
+      unit = fake_unit!(alice)
 
-      resource_inventoried_as = fake_economic_resource!(user1, %{}, unit)
-      to_resource_inventoried_as = fake_economic_resource!(user2, %{}, unit)
+      resource_inventoried_as = fake_economic_resource!(alice, %{}, unit)
+      # IO.inspect(resource_inventoried_as: resource_inventoried_as)
+      to_resource_inventoried_as = fake_economic_resource!(bob, %{}, unit)
 
-      assert {:error, e} =
-               fake_economic_event!(
-                 user2,
+      assert {:error, _e} =
+               fake_economic_event(
+                 conan,
                  %{
-                   to_resource_inventoried_as: to_resource_inventoried_as.id,
                    resource_inventoried_as: resource_inventoried_as.id,
-                   action: "transfer-custody"
+                   to_resource_inventoried_as: to_resource_inventoried_as.id,
+                   action: "transfer-custody",
+                   receiver: conan
                  },
                  unit
                )
     end
 
+    test "if a receiver tries transfering a resource to themselves without consent, stop" do
+      alice = fake_user!()
+      bob = fake_user!()
+
+      unit = fake_unit!(alice)
+
+      resource_inventoried_as = fake_economic_resource!(alice, %{}, unit)
+      to_resource_inventoried_as = fake_economic_resource!(bob, %{}, unit)
+
+      assert {:error, _e} =
+               fake_economic_event(
+                 bob,
+                 %{
+                   resource_inventoried_as: resource_inventoried_as.id,
+                   to_resource_inventoried_as: to_resource_inventoried_as.id,
+                   action: "transfer-custody",
+                   receiver: bob
+                 },
+                 unit
+               )
+    end
+
+    test "if a provider tries transfering a resource, succeed" do
+      alice = fake_user!()
+      bob = fake_user!()
+
+      unit = fake_unit!(alice)
+
+      resource_inventoried_as = fake_economic_resource!(alice, %{}, unit)
+      to_resource_inventoried_as = fake_economic_resource!(bob, %{}, unit)
+
+      assert {:ok, _event} =
+               fake_economic_event(
+                 alice,
+                 %{
+                   resource_inventoried_as: resource_inventoried_as.id,
+                   to_resource_inventoried_as: to_resource_inventoried_as.id,
+                   action: "transfer-custody",
+                   receiver: bob
+                 },
+                 unit
+               )
+    end
   end
 
   describe "DecrementIncrement with transfer-all-rights" do

@@ -9,7 +9,7 @@ admin =
     email: "root@localhost.dev",
     preferred_username: System.get_env("SEEDS_USER", "root"),
     password: System.get_env("SEEDS_PW", "123456"),
-    name: System.get_env("SEEDS_USER", "root"),
+    name: System.get_env("SEEDS_USER", "Seed User"),
     is_instance_admin: true
   }
   |> fake_user!(confirm_email: true)

@@ -24,7 +24,7 @@ defmodule CommonsPub.HTML.Formatter do
   end
 
   def escape_mention_handler("@" <> nickname = mention, buffer, _, _) do
-    case Users.get(nickname) do
+    case Users.get!(nickname) do
       %User{} ->
         # escape markdown characters with `\\`
         # (we don't want something like @user__name to be parsed by markdown)
@@ -54,7 +54,7 @@ defmodule CommonsPub.HTML.Formatter do
   end
 
   def tag_handler("@" <> nickname, buffer, opts, acc) do
-    case Users.get(nickname) do
+    case Users.get!(nickname) do
       %{id: _id} = user ->
         mention_process(opts, user, acc, Map.get(opts, :content_type))
 

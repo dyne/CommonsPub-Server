@@ -37,14 +37,18 @@ defmodule CommonsPub.Mixfile do
         ],
         output: "docs/exdoc"
       ],
-      test_paths: existing_paths(["test", "libs/activitypub/test"]), # can add test dirs to include, eg: "libs/activitypub/test" (if so, the corresponding support dir should also be added to elixirc_paths below)
+      # can add test dirs to include, eg: "libs/activitypub/test" (if so, the corresponding support dir should also be added to elixirc_paths below)
+      test_paths: existing_paths(["test", "libs/activitypub/test"]),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test]
     ]
   end
 
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: existing_paths(["lib", "test/support", "libs/activitypub/test/support"]) #
+  #
+  defp elixirc_paths(:test),
+    do: existing_paths(["lib", "test/support", "libs/activitypub/test/support"])
+
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -72,9 +76,11 @@ defmodule CommonsPub.Mixfile do
       {:absinthe_plug, "~> 1.5"},
       {:absinthe_error_payload, "~> 1.0"},
       # activitypub
-      {:activity_pub,
-       git: "https://gitlab.com/CommonsPub/activitypub", branch: "tbd"#, path: "libs/activitypub"
-       },
+      {
+        :activity_pub,
+        # , path: "libs/activitypub"
+        git: "https://gitlab.com/CommonsPub/activitypub", branch: "tbd"
+      },
       {:nodeinfo, git: "https://github.com/voxpub/nodeinfo", branch: "main"},
       # webserver
       {:cowboy, "~> 2.6"},
@@ -296,7 +302,7 @@ defmodule CommonsPub.Mixfile do
   end
 
   defp existing_paths(list) do
-    IO.inspect(Enum.filter(list, & File.exists?(&1)))
+    Enum.filter(list, &File.exists?(&1))
   end
 
   defp sentry?(), do: Mix.env() not in [:dev, :test]

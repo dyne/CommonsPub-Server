@@ -23,7 +23,7 @@ defmodule ValueFlows.Planning.Intent do
   pointable_schema do
     field(:name, :string)
     field(:note, :string)
-    belongs_to(:image, Content)
+    belongs_to(:image, CommonsPub.Uploads.Content)
 
     belongs_to(:provider, Pointers.Pointer)
     belongs_to(:receiver, Pointers.Pointer)

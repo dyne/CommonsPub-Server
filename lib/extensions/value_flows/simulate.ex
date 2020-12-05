@@ -58,9 +58,13 @@ defmodule ValueFlows.Simulate do
   end
 
   def fake_agent!(overrides \\ %{}, opts \\ []) when is_map(overrides) and is_list(opts) do
-    ValueFlows.Agent.Agents.character_to_agent(
+    fake_agent_from_user!(
       fake_user!(ValueFlows.Agent.Agents.agent_to_character(agent(overrides)))
     )
+  end
+
+  def fake_agent_from_user!(user) do
+    ValueFlows.Agent.Agents.character_to_agent(user)
   end
 
   def resource_specification(base \\ %{}) do
@@ -92,8 +96,8 @@ defmodule ValueFlows.Simulate do
   def economic_event(base \\ %{}) do
     base
     |> Map.put_new_lazy(:action, &action_id/0)
-    |> Map.put_new_lazy(:provider, &fake_agent_id/0)
-    |> Map.put_new_lazy(:receiver, &fake_agent_id/0)
+    # |> Map.put_new_lazy(:provider, &fake_agent_id/0)
+    # |> Map.put_new_lazy(:receiver, &fake_agent_id/0)
     |> Map.put_new_lazy(:note, &summary/0)
     |> Map.put_new_lazy(:has_beginning, &past_datetime/0)
     |> Map.put_new_lazy(:has_end, &future_datetime/0)
@@ -106,8 +110,8 @@ defmodule ValueFlows.Simulate do
   def economic_event_input(base \\ %{}) do
     base
     |> Map.put_new_lazy("action", &action_id/0)
-    |> Map.put_new_lazy("provider", &fake_agent_id/0)
-    |> Map.put_new_lazy("receiver", &fake_agent_id/0)
+    # |> Map.put_new_lazy("provider", &fake_agent_id/0)
+    # |> Map.put_new_lazy("receiver", &fake_agent_id/0)
     |> Map.put_new_lazy("note", &summary/0)
     |> Map.put_new_lazy("hasBeginning", &past_datetime_iso/0)
     |> Map.put_new_lazy("hasEnd", &future_datetime_iso/0)
@@ -303,6 +307,20 @@ defmodule ValueFlows.Simulate do
   end
 
   def fake_economic_event!(user, overrides, unit) do
+    with {:ok, event} <- fake_economic_event(user, overrides, unit) do
+      event
+    else
+      e ->
+        e
+    end
+  end
+
+  def fake_economic_event(user, overrides \\ %{}) do
+    unit = fake_unit!(user)
+    fake_economic_event(user, overrides, unit)
+  end
+
+  def fake_economic_event(user, overrides, unit) do
     measure_attrs = %{unit_id: unit.id}
 
     measures = %{
@@ -312,11 +330,7 @@ defmodule ValueFlows.Simulate do
 
     overrides = Map.merge(overrides, measures)
 
-    with {:ok, event} <- EconomicEvents.create(user, economic_event(overrides)) do
-      event
-    else e ->
-      e
-    end
+    EconomicEvents.create(user, economic_event(overrides))
   end
 
   def fake_process!(user, overrides \\ %{}) do

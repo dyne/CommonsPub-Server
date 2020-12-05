@@ -168,7 +168,6 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.GraphQL do
     })
   end
 
-  # FIXME: duplication!
   def create_resource_spec(%{resource_specification: resource_spec_attrs}, info) do
     Repo.transact_with(fn ->
       with {:ok, user} <- GraphQL.current_user_or_not_logged_in(info),

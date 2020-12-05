@@ -88,23 +88,9 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEvents do
     )
   end
 
-  def preload_all(event) do
-    Repo.preload(event, [
-      :context,
-      :creator,
-      :resource_quantity,
-      :effort_quantity,
-      :at_location,
-      :input_of,
-      :output_of,
-      :resource_conforms_to,
-      :resource_inventoried_as,
-      :to_resource_inventoried_as,
-      :provider,
-      :receiver,
-      :triggered_by
-    ])
-    |> preload_action()
+  def preload_all(%EconomicEvent{} = event) do
+    {:ok, event} = one(id: event.id, preload: :all)
+    preload_action(event)
   end
 
   def preload_action(event) do
@@ -224,12 +210,16 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEvents do
         }
       )
       when not is_nil(to_existing_resource) do
-    Logger.info("create a new FROM resource as part of an event")
+    Logger.info("create a new FROM resource to go with an existing TO resource")
+
+    new_resource_attrs =
+      new_inventoried_resource
+      |> Map.put_new(:primary_accountable, Map.get(event_attrs, :provider, creator))
 
     create_resource_and_event(
       creator,
       event_attrs,
-      new_inventoried_resource,
+      new_resource_attrs,
       :resource_inventoried_as
     )
   end
@@ -244,12 +234,16 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEvents do
         }
       )
       when not is_nil(from_existing_resource) do
-    Logger.info("creates a new TO resource")
+    Logger.info("creates a new TO resource to go with an existing FROM resource")
+
+    new_resource_attrs =
+      new_inventoried_resource
+      |> Map.put_new(:primary_accountable, Map.get(event_attrs, :receiver, creator))
 
     create_resource_and_event(
       creator,
       event_attrs,
-      new_inventoried_resource,
+      new_resource_attrs,
       :to_resource_inventoried_as
     )
   end
@@ -257,12 +251,16 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEvents do
   def create(creator, event_attrs, %{
         new_inventoried_resource: new_inventoried_resource
       }) do
-    Logger.info("create a completly new resource ")
+    Logger.info("creates only a new resource")
+
+    new_resource_attrs =
+      new_inventoried_resource
+      |> Map.put_new(:primary_accountable, Map.get(event_attrs, :provider, creator))
 
     create_resource_and_event(
       creator,
       event_attrs,
-      new_inventoried_resource,
+      new_resource_attrs,
       :resource_inventoried_as
     )
   end
@@ -273,15 +271,30 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEvents do
     end
   end
 
+  @doc """
+  Create an Event (with preexisting resources)
+  """
   def create(%User{} = creator, event_attrs) do
-    event_attrs = prepare_attrs(event_attrs)
-    cs = EconomicEvent.create_changeset(creator, event_attrs)
+    new_event_attrs =
+      event_attrs
+      # fallback if none indicated
+      |> Map.put_new(:provider, creator)
+      |> Map.put_new(:receiver, creator)
+      |> prepare_attrs()
+
+    cs = EconomicEvent.create_changeset(creator, new_event_attrs)
+
+    # IO.inspect(creator: creator)
+    # IO.inspect(new_event_attrs: new_event_attrs)
 
     Repo.transact_with(fn ->
-      with {:ok, event} <- Repo.insert(cs |> EconomicEvent.create_changeset_validate()),
-           {:ok, event} <- ValueFlows.Util.try_tag_thing(creator, event, event_attrs),
+      with :ok <- validate_user_involvement(creator, new_event_attrs),
+           :ok <- validate_provider_is_primary_accountable(new_event_attrs),
+           :ok <- validate_receiver_is_primary_accountable(new_event_attrs),
+           {:ok, event} <- Repo.insert(cs |> EconomicEvent.create_changeset_validate()),
+           {:ok, event} <- ValueFlows.Util.try_tag_thing(creator, event, new_event_attrs),
            event = preload_all(event),
-           {:ok, event} <- apply_resource_primary_accountable(event),
+           {:ok, event} <- maybe_transfer_resource(event),
            {:ok, event} <- EventSideEffects.event_side_effects(event),
            act_attrs = %{verb: "created", is_local: true},
            # FIXME
@@ -294,30 +307,37 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEvents do
   end
 
   defp create_resource_and_event(creator, event_attrs, new_inventoried_resource, field_name) do
-    new_inventoried_resource = Map.merge(new_inventoried_resource, %{is_public: true})
+    new_resource_attrs =
+      new_inventoried_resource
+      |> Map.put_new(:is_public, true)
 
     with {:ok, new_resource} <-
            ValueFlows.Observation.EconomicResource.EconomicResources.create(
              creator,
-             new_inventoried_resource
+             new_resource_attrs
            ) do
       event_attrs = Map.merge(event_attrs, %{field_name => new_resource.id})
 
       with {:ok, event} <- create(creator, event_attrs) do
         {:ok, event, new_resource}
+      else
+        e ->
+          # TODO: maybe we need to delete the created resource?
+          e
       end
     end
   end
 
   # TODO: take the user who is performing the update
   # @spec update(%EconomicEvent{}, attrs :: map) :: {:ok, EconomicEvent.t()} | {:error, Changeset.t()}
-  def update(%EconomicEvent{} = event, attrs) do
+  def update(user, %EconomicEvent{} = event, attrs) do
     Repo.transact_with(fn ->
       event = preload_all(event)
       attrs = prepare_attrs(attrs)
 
-      with {:ok, event} <- Repo.update(EconomicEvent.update_changeset(event, attrs)),
-           {:ok, event} <- apply_resource_primary_accountable(event),
+      with :ok <- validate_user_involvement(user, event),
+           {:ok, event} <- Repo.update(EconomicEvent.update_changeset(event, attrs)),
+           {:ok, event} <- maybe_transfer_resource(event),
            {:ok, event} <- ValueFlows.Util.try_tag_thing(nil, event, attrs),
            :ok <- publish(event, :updated) do
         {:ok, event}
@@ -325,50 +345,110 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEvents do
     end)
   end
 
-  defp update_resource_primary_accountable(event, resource) do
-    if event.action_id in ["transfer", "transfer-all-rights"] do
-      EconomicResources.update(resource, %{primary_accountable: event.receiver_id})
-    else
-      {:ok, resource}
-    end
-  end
-
-  defp apply_resource_primary_accountable(
-         %EconomicEvent{to_resource_inventoried_as_id: to_resource_id, receiver_id: receiver_id} =
-           event
+  defp maybe_transfer_resource(
+         %EconomicEvent{
+           to_resource_inventoried_as_id: to_resource_id,
+           provider_id: provider_id,
+           receiver_id: receiver_id,
+           action_id: action_id
+         } = event
        )
-       when not is_nil(to_resource_id) and not is_nil(receiver_id) do
+       when action_id in ["transfer", "transfer-all-rights"] and not is_nil(to_resource_id) and
+              not is_nil(provider_id) and not is_nil(receiver_id) and
+              provider_id != receiver_id do
     with {:ok, to_resource} <- EconomicResources.one([:default, id: to_resource_id]),
-         :ok <- validate_provider_access(event),
-         {:ok, to_resource} <- update_resource_primary_accountable(event, to_resource) do
+         :ok <- validate_provider_is_primary_accountable(event),
+         {:ok, to_resource} <-
+           EconomicResources.update(to_resource, %{primary_accountable: receiver_id}) do
       {:ok, %{event | to_resource_inventoried_as: to_resource}}
     end
   end
 
-  defp apply_resource_primary_accountable(event) do
+  defp maybe_transfer_resource(event) do
     {:ok, event}
   end
 
-  defp validate_provider_access(%EconomicEvent{resource_inventoried_as_id: resource_id} = event)
+  defp validate_user_involvement(
+         %{id: creator_id},
+         %{provider_id: provider_id, receiver_id: receiver_id} = _event
+       )
+       when provider_id == creator_id or receiver_id == creator_id do
+    # TODO add more complex rules once we have agent roles/relationships
+    :ok
+  end
+
+  defp validate_user_involvement(
+         %{id: creator_id},
+         %{provider: provider, receiver: receiver} = _event
+       )
+       when (is_binary(provider) and is_binary(receiver) and provider == creator_id) or
+              receiver == creator_id do
+    :ok
+  end
+
+  defp validate_user_involvement(
+         creator,
+         %{provider: provider, receiver: receiver} = _event
+       )
+       when provider == creator or
+              receiver == creator do
+    :ok
+  end
+
+  defp validate_user_involvement(_creator, _event) do
+    {:error, CommonsPub.Access.NotPermittedError.message("You cannot do this if you are not receiver or provider.")}
+  end
+
+  defp validate_provider_is_primary_accountable(
+         %{resource_inventoried_as_id: resource_id, provider_id: provider_id} = _event
+       )
+       when not is_nil(resource_id) and not is_nil(provider_id) do
+    with {:ok, resource} <- EconomicResources.one([:default, id: resource_id]) do
+      validate_provider_is_primary_accountable(%{
+        resource_inventoried_as: resource,
+        provider_id: provider_id
+      })
+    end
+  end
+
+  defp validate_provider_is_primary_accountable(
+         %{resource_inventoried_as: resource, provider_id: provider_id} = _event
+       )
+       when is_struct(resource) and not is_nil(provider_id) do
+    if is_nil(resource.primary_accountable_id) or provider_id == resource.primary_accountable_id do
+      :ok
+    else
+      {:error, CommonsPub.Access.NotPermittedError.message("You cannot do this since the provider is not accountable for the resource.")}
+    end
+  end
+
+  defp validate_provider_is_primary_accountable(_event) do
+    :ok
+  end
+
+  defp validate_receiver_is_primary_accountable(
+         %{to_resource_inventoried_as_id: resource_id, receiver_id: receiver_id} = event
+       )
        when not is_nil(resource_id) do
     with {:ok, resource} <- EconomicResources.one([:default, id: resource_id]) do
       if is_nil(resource.primary_accountable_id) or
-           event.provider_id == resource.primary_accountable_id do
+           receiver_id == resource.primary_accountable_id do
         :ok
       else
-        {:error, CommonsPub.Access.NotPermittedError.new()}
+        {:error, CommonsPub.Access.NotPermittedError.message("You cannot do this since the receiver is not accountable for the target resource.")}
       end
     end
   end
 
-  defp validate_provider_access(_event) do
+  defp validate_receiver_is_primary_accountable(_event) do
     :ok
   end
 
   defp prepare_attrs(attrs) do
     attrs
     |> maybe_put(:action_id, attr_get_id(attrs, :action))
-    |> maybe_put(:context_id,
+    |> maybe_put(
+      :context_id,
       attrs |> Map.get(:in_scope_of) |> CommonsPub.Common.maybe(&List.first/1)
     )
     |> maybe_put(:provider_id, attr_get_id(attrs, :provider))

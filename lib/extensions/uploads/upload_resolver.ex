@@ -10,6 +10,8 @@ defmodule CommonsPub.Web.GraphQL.UploadResolver do
   alias CommonsPub.{Uploads, Users}
   alias CommonsPub.Uploads.Content
 
+  require Logger
+
   @uploader_fields %{
     content: CommonsPub.Uploads.ResourceUploader,
     image: CommonsPub.Uploads.ImageUploader,
@@ -26,6 +28,11 @@ defmodule CommonsPub.Web.GraphQL.UploadResolver do
     end
   end
 
+  defp do_upload(user, {field_name, %Absinthe.Blueprint.Input.String{value: url}}, acc) when is_binary(url) do
+    # if we are getting a string rather than a Content object, assume its a URL
+    do_upload(user, {field_name, %{"url" => url}}, acc)
+  end
+
   defp do_upload(user, {field_name, content_input}, acc) do
     uploader = @uploader_fields[field_name]
 
@@ -37,6 +44,8 @@ defmodule CommonsPub.Web.GraphQL.UploadResolver do
 
         {:error, reason} ->
           # FIXME: delete other successful files on failure
+          Logger.warn("Could not upload #{field_name}: #{reason}")
+
           {:halt, {:error, reason}}
 
         _ ->

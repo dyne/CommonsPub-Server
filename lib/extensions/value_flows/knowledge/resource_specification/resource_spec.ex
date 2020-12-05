@@ -20,7 +20,7 @@ defmodule ValueFlows.Knowledge.ResourceSpecification do
     field(:name, :string)
     field(:note, :string)
 
-    belongs_to(:image, Content)
+    belongs_to(:image, CommonsPub.Uploads.Content)
 
     # array of URI
     field(:resource_classified_as, {:array, :string}, virtual: true)

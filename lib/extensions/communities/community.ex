@@ -20,7 +20,7 @@ defmodule CommonsPub.Communities.Community do
   alias CommonsPub.Flags.Flag
   # alias CommonsPub.Locales.Language
   alias CommonsPub.Users.User
-  alias CommonsPub.Uploads.Content
+  # alias CommonsPub.Uploads.Content
 
   table_schema "mn_community" do
     has_one(:character, CommonsPub.Characters.Character, references: :id, foreign_key: :id)
@@ -48,8 +48,8 @@ defmodule CommonsPub.Communities.Community do
     field(:name, :string)
     field(:summary, :string)
 
-    belongs_to(:icon, Content)
-    belongs_to(:image, Content)
+    belongs_to(:icon, CommonsPub.Uploads.Content)
+    belongs_to(:image, CommonsPub.Uploads.Content)
 
     field(:is_disabled, :boolean, virtual: true)
     field(:disabled_at, :utc_datetime_usec)

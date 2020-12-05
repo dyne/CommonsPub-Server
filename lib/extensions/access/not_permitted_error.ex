@@ -19,4 +19,12 @@ defmodule CommonsPub.Access.NotPermittedError do
       status: 403
     }
   end
+
+  def message(message \\ "You do not have permission.") when is_binary(message) do
+    %__MODULE__{
+      message: message,
+      code: "unauthorized",
+      status: 403
+    }
+  end
 end

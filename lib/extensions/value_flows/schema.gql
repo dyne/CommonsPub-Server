@@ -1,8 +1,16 @@
 """
- Grouping around something to create a boundary or context, used for documenting,
-accounting, planning. Extended from the default of `Person | Organization`
+A boundary or context grouped around some other record- used for documenting, accounting, planning.
 """
-union AccountingScope = User | Organisation | Person | Organization | Community | Collection
+union AccountingScope =
+    User
+  | Organisation
+  | Person
+  | Organization
+  | Community
+  | Collection
+  | Category
+  | Taggable
+## extended for CPub (default was `Person | Organization`)
 
 """
 An action verb defining the kind of event, commitment, or intent.
@@ -18,8 +26,7 @@ type Action {
   label: String!
 
   """
-  The effect of an economic event on a resource, increment, decrement, no
-  effect, or decrement resource and increment 'to' resource.
+  The accounting effect of an economic event on a resource, increment, decrement, no effect, or decrement resource and increment 'to' resource.
   """
   resourceEffect: String!
 
@@ -34,14 +41,11 @@ type Action {
   pairsWith: String
 
   """
-  added by cpub
+  The onhand effect of an economic event on a resource, increment, decrement, no effect, or decrement resource and increment 'to' resource.
   """
   onhandEffect: String
 
-  """
-  added by cpub
-  """
-  note: String
+  note: String ## added for CPub
 }
 
 """
@@ -70,9 +74,7 @@ interface Agent {
   roles: [AgentRelationshipRole!]
 
   """
-  The main place an agent is located, often an address where activities occur
-  and mail can be sent. This is usually a mappable geographic location.  It also
-  could be a website address, as in the case of agents who have no physical location.
+  The main place an agent is located, often an address where activities occur and mail can be sent. This is usually a mappable geographic location.  It also could be a website address, as in the case of agents who have no physical location.
   """
   primaryLocation: SpatialThing
   economicEvents(filter: agentEventSearchParams): [EconomicEvent!]
@@ -84,13 +86,10 @@ interface Agent {
   commitments(filter: agentCommitmentSearchParams): [Commitment!]
   intents(filter: agentIntentSearchParams): [Intent!]
 
-  """ 
-  added for cpub 
-  """
-  proposals: [Proposal!]
-  agentType: AgentType
-  canonicalUrl: String
-  displayUsername: String
+  proposals: [Proposal!] ## added for CPub
+  agentType: AgentType ## added for CPub
+  canonicalUrl: String ## added for CPub
+  displayUsername: String ## added for CPub
 }
 
 """
@@ -116,10 +115,7 @@ input AgentCreateParams {
   image: URI
 
   """
-  (`SpatialThing`) The main place an agent is located, often an address where
-  activities occur and mail can be sent. This is usually a mappable geographic
-  location.  It also could be a website address, as in the case of agents who
-  have no physical location.
+  (`SpatialThing`) The main place an agent is located, often an address where activities occur and mail can be sent. This is usually a mappable geographic location.  It also could be a website address, as in the case of agents who have no physical location.
   """
   primaryLocation: ID
 
@@ -200,20 +196,17 @@ type AgentRelationship {
 
 input AgentRelationshipCreateParams {
   """
-  (`Agent`) The subject of a relationship between 2 agents.  For example, if
-  Mary is a member of a group, then Mary is the subject.
+  (`Agent`) The subject of a relationship between 2 agents.  For example, if Mary is a member of a group, then Mary is the subject.
   """
   subject: ID!
 
   """
-  (`Agent`) The object of a relationship between 2 agents.  For example, if Mary
-  is a member of a group, then the group is the object.
+  (`Agent`) The object of a relationship between 2 agents.  For example, if Mary is a member of a group, then the group is the object.
   """
   object: ID!
 
   """
-  (`AgentRelationshipRole`) The role of an economic relationship that exists
-  between 2 agents, such as member, trading partner.
+  (`AgentRelationshipRole`) The role of an economic relationship that exists between 2 agents, such as member, trading partner.
   """
   relationship: ID!
 
@@ -293,20 +286,17 @@ input AgentRelationshipUpdateParams {
   id: ID!
 
   """
-  (`Agent`) The subject of a relationship between 2 agents.  For example, if
-  Mary is a member of a group, then Mary is the subject.
+  (`Agent`) The subject of a relationship between 2 agents.  For example, if Mary is a member of a group, then Mary is the subject.
   """
   subject: ID
 
   """
-  (`Agent`) The object of a relationship between 2 agents.  For example, if Mary
-  is a member of a group, then the group is the object.
+  (`Agent`) The object of a relationship between 2 agents.  For example, if Mary is a member of a group, then the group is the object.
   """
   object: ID
 
   """
-  (`AgentRelationshipRole`) The role of an economic relationship that exists
-  between 2 agents, such as member, trading partner.
+  (`AgentRelationshipRole`) The role of an economic relationship that exists between 2 agents, such as member, trading partner.
   """
   relationship: ID
 
@@ -325,7 +315,7 @@ input agentResourceSearchParams {
   page: Int
 }
 
-enum AgentType {
+enum AgentType { ## added for CPub
   Person
   Organization
 }
@@ -344,10 +334,7 @@ input AgentUpdateParams {
   image: URI
 
   """
-  (`SpatialThing`) The main place an agent is located, often an address where
-  activities occur and mail can be sent. This is usually a mappable geographic
-  location.  It also could be a website address, as in the case of agents who
-  have no physical location.
+  (`SpatialThing`) The main place an agent is located, often an address where activities occur and mail can be sent. This is usually a mappable geographic location.  It also could be a website address, as in the case of agents who have no physical location.
   """
   primaryLocation: ID
 
@@ -400,7 +387,7 @@ input AgreementCreateParams {
 }
 
 type AgreementResponse {
-  Agreement: Agreement
+  agreement: Agreement
 }
 
 input AgreementUpdateParams {
@@ -423,8 +410,7 @@ input AgreementUpdateParams {
 }
 
 """
-A way to tie an economic event that is given in loose fulfilment for another
-economic event, without commitments or expectations.
+A way to tie an economic event that is given in loose fulfilment for another economic event, without commitments or expectations. 
 Supports the gift economy.
 """
 type Appreciation {
@@ -487,8 +473,7 @@ input AppreciationUpdateParams {
 }
 
 """
-A claim for a future economic event(s) in reciprocity for an economic event that
-already occurred. For example, a claim for payment for goods received.
+A claim for a future economic event(s) in reciprocity for an economic event that already occurred. For example, a claim for payment for goods received.
 """
 type Claim {
   id: ID!
@@ -509,14 +494,12 @@ type Claim {
   receiver: Agent!
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  The primary resource specification or definition of an existing or potential
-  economic resource. A resource will have only one, as this specifies exactly
-  what the resource is.
+  The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ResourceSpecification
 
@@ -526,9 +509,7 @@ type Claim {
   resourceQuantity: Measure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: Measure
 
@@ -548,8 +529,7 @@ type Claim {
   created: DateTime
 
   """
-  The claim is complete or not.  This is irrespective of if the original goal
-  has been met, and indicates that no more will be done.
+  The claim is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -586,26 +566,22 @@ input ClaimCreateParams {
   receiver: ID!
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ID
 
   """
-  The amount and unit of the economic resource counted or inventoried.
+  The amount and unit of the economic resource counted or inventoried. This is the quantity that could be used to increment or decrement a resource, depending on the type of resource and resource effect of action.
   """
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -625,8 +601,7 @@ input ClaimCreateParams {
   created: DateTime
 
   """
-  The claim is complete or not.  This is irrespective of if the original goal
-  has been met, and indicates that no more will be done.
+  The claim is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -669,14 +644,12 @@ input ClaimUpdateParams {
   receiver: ID
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ID
 
@@ -686,9 +659,7 @@ input ClaimUpdateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -708,8 +679,7 @@ input ClaimUpdateParams {
   created: DateTime
 
   """
-  The claim is complete or not.  This is irrespective of if the original goal
-  has been met, and indicates that no more will be done.
+  The claim is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -761,14 +731,12 @@ type Commitment {
   receiver: Agent!
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  The primary resource specification or definition of an existing or potential
-  economic resource. A resource will have only one, as this specifies exactly
-  what the resource is.
+  The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ResourceSpecification
 
@@ -783,9 +751,7 @@ type Commitment {
   resourceQuantity: Measure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: Measure
 
@@ -815,8 +781,7 @@ type Commitment {
   created: DateTime
 
   """
-  The commitment is complete or not.  This is irrespective of if the original
-  goal has been met, and indicates that no more will be done.
+  The commitment is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -831,8 +796,7 @@ type Commitment {
   inScopeOf: [AccountingScope!]
 
   """
-  Reference to an agreement between agents which specifies the rules or policies
-  or calculations which govern this commitment.
+  Reference to an agreement between agents which specifies the rules or policies or calculations which govern this commitment.
   """
   agreedIn: URI
 
@@ -895,14 +859,12 @@ input CommitmentCreateParams {
   receiver: ID!
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ID
 
@@ -917,9 +879,7 @@ input CommitmentCreateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -944,8 +904,7 @@ input CommitmentCreateParams {
   due: DateTime
 
   """
-  The commitment is complete or not.  This is irrespective of if the original
-  goal has been met, and indicates that no more will be done.
+  The commitment is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -970,8 +929,7 @@ input CommitmentCreateParams {
   atLocation: ID
 
   """
-  Reference to an agreement between agents which specifies the rules or policies
-  or calculations which govern this commitment.
+  Reference to an agreement between agents which specifies the rules or policies or calculations which govern this commitment.
   """
   agreedIn: URI
 
@@ -1009,14 +967,12 @@ input CommitmentUpdateParams {
   receiver: ID
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ID
 
@@ -1031,9 +987,7 @@ input CommitmentUpdateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -1058,8 +1012,7 @@ input CommitmentUpdateParams {
   due: DateTime
 
   """
-  The commitment is complete or not.  This is irrespective of if the original
-  goal has been met, and indicates that no more will be done.
+  The commitment is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -1084,8 +1037,7 @@ input CommitmentUpdateParams {
   atLocation: ID
 
   """
-  Reference to an agreement between agents which specifies the rules or policies
-  or calculations which govern this commitment.
+  Reference to an agreement between agents which specifies the rules or policies or calculations which govern this commitment.
   """
   agreedIn: URI
 
@@ -1096,9 +1048,7 @@ input CommitmentUpdateParams {
 }
 
 """
-An observed economic flow, as opposed to a flow planned to happen in the future.
-This could reflect a change in the quantity of an economic resource. It is also
-defined by its behavior in relation to the economic resource (see `Action`)
+An observed economic flow, as opposed to a flow planned to happen in the future. This could reflect a change in the quantity of an economic resource. It is also defined by its behavior in relation to the economic resource (see `Action`)
 """
 type EconomicEvent {
   id: ID!
@@ -1134,35 +1084,27 @@ type EconomicEvent {
   resourceInventoriedAs: EconomicResource
 
   """
-  Additional economic resource on the economic event when needed by the
-  receiver. Used when a transfer or move, or sometimes other actions, requires
-  explicitly identifying an economic resource on the receiving side.
+  Additional economic resource on the economic event when needed by the receiver. Used when a transfer or move, or sometimes other actions, requires explicitly identifying an economic resource on the receiving side.
   """
   toResourceInventoriedAs: EconomicResource
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  The primary resource specification or definition of an existing or potential
-  economic resource. A resource will have only one, as this specifies exactly
-  what the resource is.
+  The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ResourceSpecification
 
   """
-  The amount and unit of the economic resource counted or inventoried. This is
-  the quantity that could be used to increment or decrement a resource,
-  depending on the type of resource and resource effect of action.
+  The amount and unit of the economic resource counted or inventoried. This is the quantity that could be used to increment or decrement a resource, depending on the type of resource and resource effect of action.
   """
   resourceQuantity: Measure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: Measure
 
@@ -1192,8 +1134,7 @@ type EconomicEvent {
   inScopeOf: [AccountingScope!]
 
   """
-  Reference to an agreement between agents which specifies the rules or policies
-  or calculations which govern this economic event.
+  Reference to an agreement between agents which specifies the rules or policies or calculations which govern this economic event.
   """
   agreedIn: URI
 
@@ -1232,10 +1173,10 @@ type EconomicEvent {
   satisfies: [Satisfaction!]
 
   """
-  cpub: added tags field, linked to resourceClassifiedAs:
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  Tags/Categories in a taxonomy, linked to resourceClassifiedAs:
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
-  tags: [AnyContext]
+  tags: [AnyContext] ## added for CPub
 }
 
 input EconomicEventCreateParams {
@@ -1257,13 +1198,11 @@ input EconomicEventCreateParams {
   """
   (`Agent`) The economic agent from whom the actual economic event is initiated.
   """
-  provider: ID!
-
+  provider: ID ## changed for CPub (was required)
   """
   (`Agent`) The economic agent whom the actual economic event is for.
   """
-  receiver: ID!
-
+  receiver: ID ## changed for CPub (was required)
   """
   Grouping around something to create a boundary or context, used for documenting, accounting, planning.
   """
@@ -1275,28 +1214,22 @@ input EconomicEventCreateParams {
   resourceInventoriedAs: ID
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ID
 
   """
-  The amount and unit of the economic resource counted or inventoried. This is
-  the quantity that could be used to increment or decrement a resource,
-  depending on the type of resource and resource effect of action.
+  The amount and unit of the economic resource counted or inventoried. This is the quantity that could be used to increment or decrement a resource, depending on the type of resource and resource effect of action.
   """
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -1326,8 +1259,7 @@ input EconomicEventCreateParams {
   note: String
 
   """
-  Reference to an agreement between agents which specifies the rules or policies
-  or calculations which govern this economic event.
+  Reference to an agreement between agents which specifies the rules or policies or calculations which govern this economic event.
   """
   agreedIn: URI
 
@@ -1342,17 +1274,15 @@ input EconomicEventCreateParams {
   triggeredBy: ID
 
   """
-  (`EconomicResource`) Additional economic resource on the economic event when
-  needed by the receiver. Used when a transfer or move, or sometimes other
-  actions, requires explicitly identifying an economic resource on the receiving side.
+  (`EconomicResource`) Additional economic resource on the economic event when needed by the receiver. Used when a transfer or move, or sometimes other actions, requires explicitly identifying an economic resource on the receiving side.
   """
   toResourceInventoriedAs: ID
 
   """
-  cpub: added tags field, linked to resourceClassifiedAs:
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  Tags/Categories in a taxonomy, linked to resourceClassifiedAs:
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
-  tags: [ID!]
+  tags: [ID!] ## added for CPub
 }
 
 type EconomicEventResponse {
@@ -1376,8 +1306,7 @@ input EconomicEventUpdateParams {
   note: String
 
   """
-  Reference to an agreement between agents which specifies the rules or policies
-  or calculations which govern this economic event.
+  Reference to an agreement between agents which specifies the rules or policies or calculations which govern this economic event.
   """
   agreedIn: URI
 
@@ -1409,29 +1338,22 @@ type EconomicResource {
   name: String
 
   """
-  References one or more concepts in a common taxonomy or other classification
-  scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   classifiedAs: [URI!]
 
   """
-  The primary resource specification or definition of an existing or potential
-  economic resource. A resource will have only one, as this specifies exactly
-  what the resource is.
+  The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   conformsTo: ResourceSpecification!
 
   """
-  Sometimes called serial number, used when each item must have a traceable
-  identifier (like a computer). Could also be used for other unique tracking
-  identifiers needed for resources.
+  Sometimes called serial number, used when each item must have a traceable identifier (like a computer). Could also be used for other unique tracking identifiers needed for resources.
   """
   trackingIdentifier: String
 
   """
-  Lot or batch of an economic resource, used to track forward or backwards to
-  all occurrences of resources of that lot. Note more than one resource can be
-  of the same lot.
+  Lot or batch of an economic resource, used to track forward or backwards to all occurrences of resources of that lot. Note more than one resource can be of the same lot.
   """
   lot: ProductBatch
 
@@ -1441,16 +1363,12 @@ type EconomicResource {
   image: URI
 
   """
-  The current amount and unit of the economic resource for which the agent has
-  primary rights and responsibilities, sometimes thought of as ownership. This
-  can be either stored or derived from economic events affecting the resource.
+  The current amount and unit of the economic resource for which the agent has primary rights and responsibilities, sometimes thought of as ownership. This can be either stored or derived from economic events affecting the resource.
   """
   accountingQuantity: Measure
 
   """
-  The current amount and unit of the economic resource which is under direct
-  control of the agent.  It may be more or less than the accounting quantity.
-  This can be either stored or derived from economic events affecting the resource.
+  The current amount and unit of the economic resource which is under direct control of the agent.  It may be more or less than the accounting quantity. This can be either stored or derived from economic events affecting the resource.
   """
   onhandQuantity: Measure
 
@@ -1465,16 +1383,12 @@ type EconomicResource {
   unitOfEffort: Unit
 
   """
-  References the ProcessSpecification of the last process the desired economic
-  resource went through. Stage is used when the last process is important for
-  finding proper resources, such as where the publishing process wants only
-  documents that have gone through the editing process.
+  References the ProcessSpecification of the last process the desired economic resource went through. Stage is used when the last process is important for finding proper resources, such as where the publishing process wants only documents that have gone through the editing process.
   """
   stage: ProcessSpecification
 
   """
-  The state of the desired economic resource (pass or fail), after coming out of
-  a test or review process. Can be derived from the last event if a pass or fail event.
+  The state of the desired economic resource (pass or fail), after coming out of a test or review process. Can be derived from the last event if a pass or fail event.
   """
   state: Action
 
@@ -1484,9 +1398,7 @@ type EconomicResource {
   containedIn: EconomicResource
 
   """
-  The agent currently with primary rights and responsibilites for the economic
-  resource. It is the agent that is associated with the accountingQuantity of
-  the economic resource.
+  The agent currently with primary rights and responsibilites for the economic resource. It is the agent that is associated with the accountingQuantity of the economic resource.
   """
   primaryAccountable: Agent
 
@@ -1498,16 +1410,15 @@ type EconomicResource {
   track: [EconomicEvent!]
 
   """
-  The current place an economic resource is located. Could be at any level of
-  granularity, from a town to an address to a warehouse location. Usually mappable.
+  The current place an economic resource is located. Could be at any level of granularity, from a town to an address to a warehouse location. Usually mappable.
   """
   currentLocation: SpatialThing
 
   """
-  cpub: added tags field, linked to resourceClassifiedAs:
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  Tags/Categories in a taxonomy, linked to resourceClassifiedAs:
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
-  tags: [ID!]
+  tags: [ID!] ## added for CPub
 }
 
 """
@@ -1520,23 +1431,17 @@ input EconomicResourceCreateParams {
   name: String
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   conformsTo: ID
 
   """
-  Sometimes called serial number, used when each item must have a traceable
-  identifier (like a computer). Could also be used for other unique tracking
-  identifiers needed for resources.
+  Sometimes called serial number, used when each item must have a traceable identifier (like a computer). Could also be used for other unique tracking identifiers needed for resources.
   """
   trackingIdentifier: String
 
   """
-  (`ProductBatch`) Lot or batch of an economic resource, used to track forward
-  or backwards to all occurrences of resources of that lot. Note more than one
-  resource can be of the same lot.
+  (`ProductBatch`) Lot or batch of an economic resource, used to track forward or backwards to all occurrences of resources of that lot. Note more than one resource can be of the same lot.
   """
   lot: ID
 
@@ -1551,9 +1456,7 @@ input EconomicResourceCreateParams {
   containedIn: ID
 
   """
-  (`SpatialThing`) The current place an economic resource is located.  Could be
-  at any level of granularity, from a town to an address to a warehouse
-  location.  Usually mappable.
+  (`SpatialThing`) The current place an economic resource is located.  Could be at any level of granularity, from a town to an address to a warehouse location.  Usually mappable.
   """
   currentLocation: ID
 
@@ -1563,10 +1466,10 @@ input EconomicResourceCreateParams {
   note: String
 
   """
-  cpub: added tags field, linked to resourceClassifiedAs:
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  Tags/Categories in a taxonomy, linked to resourceClassifiedAs:
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
-  tags: [ID!]
+  tags: [ID!] ## added for CPub
 }
 
 type EconomicResourceResponse {
@@ -1577,8 +1480,7 @@ input EconomicResourceUpdateParams {
   id: ID!
 
   """
-  References one or more concepts in a common taxonomy or other classification
-  scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   classifiedAs: [URI!]
 
@@ -1605,14 +1507,9 @@ input EconomicResourceUpdateParams {
 
 union EventOrCommitment = EconomicEvent | Commitment
 
-"""
-Only used for workaround mentioned in readme
-"""
-scalar ExternalType
 
 """
-Represents many-to-many relationships between commitments and economic events
-that fully or partially satisfy one or more commitments.
+Represents many-to-many relationships between commitments and economic events that fully or partially satisfy one or more commitments.
 """
 type Fulfillment {
   id: ID!
@@ -1633,9 +1530,7 @@ type Fulfillment {
   resourceQuantity: Measure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: Measure
 
@@ -1662,9 +1557,7 @@ input FulfillmentCreateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -1697,9 +1590,7 @@ input FulfillmentUpdateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -1739,29 +1630,25 @@ type Intent {
   The economic agent from whom the intent is initiated. This implies that the intent is an offer.
   """
   provider: Agent
-  # provider: User   # WIP untill we will implement agent
 
   """
   The economic agent whom the intent is for.  This implies that the intent is a request.
   """
   receiver: Agent
-  # receiver: User
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  cpub: added tags field, linked to resourceClassifiedAs:
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  Tags/Categories in a taxonomy, linked to resourceClassifiedAs:
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
-  tags: [AnyContext]
+  tags: [AnyContext] ## added for CPub
 
   """
-  The primary resource specification or definition of an existing or potential
-  economic resource. A resource will have only one, as this specifies exactly
-  what the resource is.
+  The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ResourceSpecification
 
@@ -1771,16 +1658,12 @@ type Intent {
   resourceInventoriedAs: EconomicResource
 
   """
-  The amount and unit of the economic resource counted or inventoried. This is
-  the quantity that could be used to increment or decrement a resource,
-  depending on the type of resource and resource effect of action.
+  The amount and unit of the economic resource counted or inventoried. This is the quantity that could be used to increment or decrement a resource, depending on the type of resource and resource effect of action.
   """
   resourceQuantity: Measure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: Measure
 
@@ -1810,15 +1693,14 @@ type Intent {
   due: DateTime
 
   """
-  The intent is complete or not.  This is irrespective of if the original goal
-  has been met, and indicates that no more will be done.
+  The intent is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
   """
-  The uri to an image relevant to the intent, such as a photo. // WIP FIXME adding content rather than uri
+  The uri to an image relevant to the intent, such as a photo. 
   """
-  image: Content
+  image: URI 
 
   """
   A textual description or comment.
@@ -1847,10 +1729,7 @@ type Intent {
   atLocation: SpatialThing
   publishedIn: [ProposedIntent!]
 
-  """
-  Added for CommonsPub
-  """
-  canonicalUrl: URI
+  canonicalUrl: URI ## added for CPub
 }
 
 input IntentCreateParams {
@@ -1885,39 +1764,33 @@ input IntentCreateParams {
   receiver: ID
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ID
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  Same as resourceClassifiedAs, but uses tag IDs
+  Tags/Categories in a taxonomy, linked to resourceClassifiedAs:
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
-  tags: [ID!]
+  tags: [ID!] ## added for CPub
 
   """
-  (`EconomicResource`) When a specific `EconomicResource` is known which can
-  service the `Intent`, this defines that resource.
+  (`EconomicResource`) When a specific `EconomicResource` is known which can service the `Intent`, this defines that resource.
   """
   resourceInventoriedAs: ID
 
   """
-  The amount and unit of the economic resource counted or inventoried. This is
-  the quantity that could be used to increment or decrement a resource,
-  depending on the type of resource and resource effect of action.
+  The amount and unit of the economic resource counted or inventoried. This is the quantity that could be used to increment or decrement a resource, depending on the type of resource and resource effect of action.
   """
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -1949,7 +1822,7 @@ input IntentCreateParams {
   """
   The uri to an image relevant to the intent, such as a photo.
   """
-  image: UploadInput
+  image: URI
 
   """
   A textual description or comment.
@@ -1972,8 +1845,7 @@ input IntentCreateParams {
   agreedIn: URI
 
   """
-  The intent is complete or not.  This is irrespective of if the original goal
-  has been met, and indicates that no more will be done.
+  The intent is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 }
@@ -2016,34 +1888,27 @@ input IntentUpdateParams {
   receiver: ID
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ID
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  (`EconomicResource`) When a specific `EconomicResource` is known which can
-  service the `Intent`, this defines that resource.
+  (`EconomicResource`) When a specific `EconomicResource` is known which can service the `Intent`, this defines that resource.
   """
   resourceInventoriedAs: ID
 
   """
-  The amount and unit of the economic resource counted or inventoried. This is
-  the quantity that could be used to increment or decrement a resource,
-  depending on the type of resource and resource effect of action.
+  The amount and unit of the economic resource counted or inventoried. This is the quantity that could be used to increment or decrement a resource, depending on the type of resource and resource effect of action.
   """
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -2075,11 +1940,10 @@ input IntentUpdateParams {
   """
   The uri to an image relevant to the intent, such as a photo.
   """
-  image: UploadInput
+  image: URI
 
   """
-  The intent is complete or not.  This is irrespective of if the original goal
-  has been met, and indicates that no more will be done.
+  The intent is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -2102,183 +1966,6 @@ input IntentUpdateParams {
   Reference to an agreement between agents which specifies the rules or policies or calculations which govern this intent.
   """
   agreedIn: URI
-}
-
-type ValueFlowsMutation {
-  """
-  Registers a new (human) person with the collaboration space
-  """
-  createPerson(person: AgentCreateParams!): PersonResponse
-
-  """
-  Update profile details
-  """
-  updatePerson(person: AgentUpdateParams!): PersonResponse
-
-  """
-  Erase record of a person and thus remove them from the collaboration space
-  """
-  deletePerson(id: ID!): Boolean
-
-  """
-  Registers a new organization (group agent) with the collaboration space
-  """
-  createOrganization(organization: AgentCreateParams!): OrganizationResponse
-
-  """
-  Update organization profile details
-  """
-  updateOrganization(organization: AgentUpdateParams!): OrganizationResponse
-
-  """
-  Erase record of an organization and thus remove it from the collaboration space
-  """
-  deleteOrganization(id: ID!): Boolean
-  createAgentRelationship(
-    relationship: AgentRelationshipCreateParams!
-  ): AgentRelationshipResponse
-  updateAgentRelationship(
-    relationship: AgentRelationshipUpdateParams!
-  ): AgentRelationshipResponse
-  deleteAgentRelationship(id: ID!): Boolean
-  createAgentRelationshipRole(
-    agentRelationshipRole: AgentRelationshipRoleCreateParams
-  ): AgentRelationshipRoleResponse
-  updateAgentRelationshipRole(
-    agentRelationshipRole: AgentRelationshipRoleUpdateParams
-  ): AgentRelationshipRoleResponse
-  deleteAgentRelationshipRole(id: ID!): Boolean
-  createAgreement(agreement: AgreementCreateParams): AgreementResponse
-  updateAgreement(agreement: AgreementUpdateParams): AgreementResponse
-  deleteAgreement(id: ID!): Boolean
-  createAppreciation(
-    appreciation: AppreciationCreateParams!
-  ): AppreciationResponse
-  updateAppreciation(
-    appreciation: AppreciationUpdateParams!
-  ): AppreciationResponse
-  deleteAppreciation(id: ID!): Boolean
-  createClaim(claim: ClaimCreateParams!): ClaimResponse
-  updateClaim(claim: ClaimUpdateParams!): ClaimResponse
-  deleteClaim(id: ID!): Boolean
-  createSettlement(settlement: SettlementCreateParams!): SettlementResponse
-  updateSettlement(s0ettlement: SettlementUpdateParams!): SettlementResponse
-  deleteSettlement(id: ID!): Boolean
-  createResourceSpecification(
-    resourceSpecification: ResourceSpecificationCreateParams
-  ): ResourceSpecificationResponse
-  updateResourceSpecification(
-    resourceSpecification: ResourceSpecificationUpdateParams
-  ): ResourceSpecificationResponse
-  deleteResourceSpecification(id: ID!): Boolean
-  createProcessSpecification(
-    processSpecification: ProcessSpecificationCreateParams
-  ): ProcessSpecificationResponse
-  updateProcessSpecification(
-    processSpecification: ProcessSpecificationUpdateParams
-  ): ProcessSpecificationResponse
-  deleteProcessSpecification(id: ID!): Boolean
-  createEconomicEvent(
-    event: EconomicEventCreateParams!
-    newInventoriedResource: EconomicResourceCreateParams
-  ): EconomicEventResponse
-  updateEconomicEvent(event: EconomicEventUpdateParams!): EconomicEventResponse
-  deleteEconomicEvent(id: ID!): Boolean
-  updateEconomicResource(
-    resource: EconomicResourceUpdateParams!
-  ): EconomicResourceResponse
-  deleteEconomicResource(id: ID!): Boolean
-  createProductBatch(
-    productBatch: ProductBatchCreateParams!
-  ): ProductBatchResponse
-  updateProductBatch(
-    productBatch: ProductBatchUpdateParams!
-  ): ProductBatchResponse
-  deleteProductBatch(id: ID!): Boolean
-  createProcess(process: ProcessCreateParams!): ProcessResponse
-  updateProcess(process: ProcessUpdateParams!): ProcessResponse
-  deleteProcess(id: ID!): Boolean
-  createPlan(plan: PlanCreateParams!): PlanResponse
-  updatePlan(plan: PlanUpdateParams!): PlanResponse
-  deletePlan(id: ID!): Boolean
-  createCommitment(commitment: CommitmentCreateParams): CommitmentResponse
-  updateCommitment(commitment: CommitmentUpdateParams): CommitmentResponse
-  deleteCommitment(id: ID!): Boolean
-
-  createIntent(intent: IntentCreateParams): IntentResponse
-
-  """
-  Creates a new offer for the logged in user, will ignore any provider specified.
-  """
-  createOffer(intent: IntentCreateParams): IntentResponse
-
-  """
-  Creates a new need for the logged in user, will ignore any receiver specified.
-  """
-  createNeed(intent: IntentCreateParams): IntentResponse
-
-  updateIntent(intent: IntentUpdateParams): IntentResponse
-  deleteIntent(id: ID!): Boolean
-  createFulfillment(fulfillment: FulfillmentCreateParams!): FulfillmentResponse
-  updateFulfillment(fulfillment: FulfillmentUpdateParams!): FulfillmentResponse
-  deleteFulfillment(id: ID!): Boolean
-  createSatisfaction(
-    satisfaction: SatisfactionCreateParams
-  ): SatisfactionResponse
-  updateSatisfaction(
-    satisfaction: SatisfactionUpdateParams
-  ): SatisfactionResponse
-  deleteSatisfaction(id: ID!): Boolean
-  createProposal(proposal: ProposalCreateParams): ProposalResponse
-  updateProposal(proposal: ProposalUpdateParams): ProposalResponse
-  deleteProposal(id: ID!): Boolean
-
-  """
-  Include an existing intent as part of a proposal.
-  @param publishedIn the (`Proposal`) to include the intent in
-  @param publishes the (`Intent`) to include as part of the proposal
-  """
-  proposeIntent(
-    publishedIn: ID!
-    publishes: ID!
-    reciprocal: Boolean
-  ): ProposedIntentResponse
-  deleteProposedIntent(id: ID!): Boolean
-
-  """
-  Send a proposal to another agent.
-  @param proposed the (`Proposal`) to send to an involved agent
-  @param proposedTo the (`Agent`) to include in the proposal
-  """
-  proposeTo(proposed: ID!, proposedTo: ID!): ProposedToResponse
-  deleteProposedTo(id: ID!): Boolean
-  createRecipeFlow(recipeFlow: RecipeFlowCreateParams): RecipeFlowResponse
-  updateRecipeFlow(recipeFlow: RecipeFlowUpdateParams): RecipeFlowResponse
-  deleteRecipeFlow(id: ID!): Boolean
-  createRecipeProcess(
-    recipeProcess: RecipeProcessCreateParams
-  ): RecipeProcessResponse
-  updateRecipeProcess(
-    recipeProcess: RecipeProcessUpdateParams
-  ): RecipeProcessResponse
-  deleteRecipeProcess(id: ID!): Boolean
-  createRecipeResource(
-    recipeResource: RecipeResourceCreateParams
-  ): RecipeResourceResponse
-  updateRecipeResource(
-    recipeResource: RecipeResourceUpdateParams
-  ): RecipeResourceResponse
-  deleteRecipeResource(id: ID!): Boolean
-  createScenario(plan: ScenarioCreateParams!): ScenarioResponse
-  updateScenario(plan: ScenarioUpdateParams!): ScenarioResponse
-  deleteScenario(id: ID!): Boolean
-  createScenarioDefinition(
-    plan: ScenarioDefinitionCreateParams!
-  ): ScenarioDefinitionResponse
-  updateScenarioDefinition(
-    plan: ScenarioDefinitionUpdateParams!
-  ): ScenarioDefinitionResponse
-  deleteScenarioDefinition(id: ID!): Boolean
 }
 
 """
@@ -2307,9 +1994,7 @@ type Organization implements Agent {
   roles: [AgentRelationshipRole!]
 
   """
-  The main place an agent is located, often an address where activities occur
-  and mail can be sent. This is usually a mappable geographic location.  It also
-  could be a website address, as in the case of agents who have no physical location.
+  The main place an agent is located, often an address where activities occur and mail can be sent. This is usually a mappable geographic location.  It also could be a website address, as in the case of agents who have no physical location.
   """
   primaryLocation: SpatialThing
   economicEvents(filter: agentEventSearchParams): [EconomicEvent!]
@@ -2321,12 +2006,11 @@ type Organization implements Agent {
   commitments(filter: agentCommitmentSearchParams): [Commitment!]
   intents(filter: agentIntentSearchParams): [Intent!]
 
-  ## added for CPub:
-  proposals: [Proposal!]
-  agentType: AgentType
-  canonicalUrl: String
-  displayUsername: String
-  inScopeOf: [AccountingScope!]
+  proposals: [Proposal!] ## added for CPub
+  agentType: AgentType ## added for CPub
+  canonicalUrl: String ## added for CPub
+  displayUsername: String ## added for CPub
+  inScopeOf: [AccountingScope!] ## added for CPub
 }
 
 type OrganizationResponse {
@@ -2359,9 +2043,7 @@ type Person implements Agent {
   roles: [AgentRelationshipRole!]
 
   """
-  The main place an agent is located, often an address where activities occur
-  and mail can be sent. This is usually a mappable geographic location.  It also
-  could be a website address, as in the case of agents who have no physical location.
+  The main place an agent is located, often an address where activities occur and mail can be sent. This is usually a mappable geographic location.  It also could be a website address, as in the case of agents who have no physical location.
   """
   primaryLocation: SpatialThing
   economicEvents(filter: agentEventSearchParams): [EconomicEvent!]
@@ -2373,11 +2055,10 @@ type Person implements Agent {
   commitments(filter: agentCommitmentSearchParams): [Commitment!]
   intents(filter: agentIntentSearchParams): [Intent!]
 
-  ## added for CPub:
-  proposals: [Proposal!]
-  agentType: AgentType
-  canonicalUrl: String
-  displayUsername: String
+  proposals: [Proposal!] ## added for CPub
+  agentType: AgentType ## added for CPub
+  canonicalUrl: String ## added for CPub
+  displayUsername: String ## added for CPub
 }
 
 type PersonResponse {
@@ -2520,8 +2201,7 @@ type Process {
   hasEnd: DateTime
 
   """
-  The process is complete or not.  This is irrespective of if the original goal
-  has been met, and indicates that no more will be done.
+  The process is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -2531,8 +2211,7 @@ type Process {
   basedOn: ProcessSpecification
 
   """
-  References one or more concepts in a common taxonomy or other classification
-  scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   classifiedAs: [URI!]
 
@@ -2574,10 +2253,10 @@ type Process {
   nestedIn: Scenario
 
   """
-  cpub: added tags field, linked to resourceClassifiedAs:
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  Tags/Categories in a taxonomy, linked to resourceClassifiedAs:
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
-  tags: [AnyContext!]
+  tags: [AnyContext!] ## added for CPub
 }
 
 input ProcessCreateParams {
@@ -2597,8 +2276,7 @@ input ProcessCreateParams {
   hasEnd: DateTime
 
   """
-  The process is complete or not.  This is irrespective of if the original goal
-  has been met, and indicates that no more will be done.
+  The process is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -2623,16 +2301,15 @@ input ProcessCreateParams {
   basedOn: ID
 
   """
-  References one or more concepts in a common taxonomy or other classification
-  scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   classifiedAs: [URI!]
 
   """
-  cpub: added tags field, linked to resourceClassifiedAs:
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  Tags/Categories in a taxonomy, linked to resourceClassifiedAs:
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
-  tags: [ID!]
+  tags: [ID!] ## added for CPub
 }
 
 type ProcessResponse {
@@ -2705,8 +2382,7 @@ input ProcessUpdateParams {
   hasEnd: DateTime
 
   """
-  The process is complete or not.  This is irrespective of if the original goal
-  has been met, and indicates that no more will be done.
+  The process is complete or not.  This is irrespective of if the original goal has been met, and indicates that no more will be done.
   """
   finished: Boolean
 
@@ -2731,8 +2407,7 @@ input ProcessUpdateParams {
   basedOn: ID
 
   """
-  References one or more concepts in a common taxonomy or other classification
-  scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   classifiedAs: [URI!]
 }
@@ -2829,8 +2504,7 @@ type Proposal {
   inScopeOf: [AccountingScope!]
 
   """
-  This proposal contains unit based quantities, which can be multipied to create
-  commitments; commonly seen in a price list or e-commerce.
+  This proposal contains unit based quantities, which can be multipied to create commitments; commonly seen in a price list or e-commerce.
   """
   unitBased: Boolean
 
@@ -2843,7 +2517,7 @@ type Proposal {
   A textual description or comment.
   """
   note: String
-  
+
   """
   Intent(s) published as part of to this proposal
   """
@@ -2859,11 +2533,8 @@ type Proposal {
   """
   eligibleLocation: SpatialThing
 
-  """
-  Added for CommonsPub
-  """
-  canonicalUrl: URI
-  creator: Agent
+  canonicalUrl: URI ## added for CPub
+  creator: Agent ## added for CPub
 }
 
 input ProposalCreateParams {
@@ -2893,8 +2564,7 @@ input ProposalCreateParams {
   inScopeOf: [ID!]
 
   """
-  This proposal contains unit based quantities, which can be multipied to create
-  commitments; commonly seen in a price list or e-commerce.
+  This proposal contains unit based quantities, which can be multipied to create commitments; commonly seen in a price list or e-commerce.
   """
   unitBased: Boolean
 
@@ -2942,8 +2612,7 @@ input ProposalUpdateParams {
   inScopeOf: [ID!]
 
   """
-  This proposal contains unit based quantities, which can be multipied to create
-  commitments; commonly seen in a price list or e-commerce.
+  This proposal contains unit based quantities, which can be multipied to create commitments; commonly seen in a price list or e-commerce.
   """
   unitBased: Boolean
 
@@ -2954,9 +2623,7 @@ input ProposalUpdateParams {
 }
 
 """
-Represents many-to-many relationships between Proposals and Intents, supporting
-including intents in multiple proposals, as well as a proposal including
-multiple intents.
+Represents many-to-many relationships between Proposals and Intents, supporting including intents in multiple proposals, as well as a proposal including multiple intents.
 """
 type ProposedIntent {
   id: ID!
@@ -3014,9 +2681,7 @@ type RecipeFlow {
   resourceQuantity: Measure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: Measure
 
@@ -3063,9 +2728,7 @@ input RecipeFlowCreateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -3080,10 +2743,12 @@ input RecipeFlowCreateParams {
   recipeOutputOf: ID
 
   """
-  (`ProcessSpecification`) References the ProcessSpecification of the last
-  process the economic resource went through. Stage is used when the last
-  process is important for finding proper resources, such as where the
-  publishing process wants only documents that have gone through the editing process.
+  (`RecipeExchange`) Relates a flow to its exchange agreement in a recipe.
+  """
+  recipeClauseOf: ID
+
+  """
+  (`ProcessSpecification`) References the ProcessSpecification of the last process the economic resource went through. Stage is used when the last process is important for finding proper resources, such as where the publishing process wants only documents that have gone through the editing process.
   """
   stage: ID
 
@@ -3121,9 +2786,7 @@ input RecipeFlowUpdateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -3138,10 +2801,7 @@ input RecipeFlowUpdateParams {
   recipeOutputOf: ID
 
   """
-  (`ProcessSpecification`) References the ProcessSpecification of the last
-  process the economic resource went through. Stage is used when the last
-  process is important for finding proper resources, such as where the
-  publishing process wants only documents that have gone through the editing process.
+  (`ProcessSpecification`) References the ProcessSpecification of the last process the economic resource went through. Stage is used when the last process is important for finding proper resources, such as where the publishing process wants only documents that have gone through the editing process.
   """
   stage: ID
 
@@ -3155,6 +2815,38 @@ input RecipeFlowUpdateParams {
   """
   note: String
 }
+
+
+input RecipeExchangeCreateParams {
+  """
+  An informal or formal textual identifier for a recipe exchange. Does not imply uniqueness.
+  """
+  name: String!
+
+  """
+  A textual description or comment.
+  """
+  note: String
+}
+
+input RecipeExchangeUpdateParams {
+  id: ID!
+
+  """
+  An informal or formal textual identifier for a recipe exchange. Does not imply uniqueness.
+  """
+  name: String
+
+  """
+  A textual description or comment.
+  """
+  note: String
+}
+
+type RecipeExchangeResponse {
+  recipeExchange: RecipeExchange
+}
+
 
 """
 Specifies a process in a recipe for use in planning from recipe.
@@ -3280,22 +2972,36 @@ type RecipeResource {
   note: String
 
   """
-  The primary resource specification or definition of an existing or potential
-  economic resource. A resource will have only one, as this specifies exactly
-  what the resource is.
+  The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ResourceSpecification
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
   """
-  Defines if any resource of that type can be freely substituted for any other
-  resource of that type when used, consumed, traded, etc.
+  Defines if any resource of that type can be freely substituted for any other resource of that type when used, consumed, traded, etc.
   """
   substitutable: Boolean
+}
+
+"""
+Specifies an exchange agreement as part of a recipe.
+"""
+type RecipeExchange {
+  id: ID!
+
+  """
+  An informal or formal textual identifier for a recipe exchange. Does not imply uniqueness.
+  """
+  name: String!
+
+  """
+  A textual description or comment.
+  """
+  note: String
 }
 
 input RecipeResourceCreateParams {
@@ -3315,8 +3021,7 @@ input RecipeResourceCreateParams {
   unitOfEffort: ID
 
   """
-  Defines if any resource of that type can be freely substituted for any other
-  resource of that type when used, consumed, traded, etc.
+  Defines if any resource of that type can be freely substituted for any other resource of that type when used, consumed, traded, etc.
   """
   substitutable: Boolean
 
@@ -3326,14 +3031,12 @@ input RecipeResourceCreateParams {
   image: URI
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ID
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
@@ -3366,8 +3069,7 @@ input RecipeResourceUpdateParams {
   unitOfEffort: ID
 
   """
-  Defines if any resource of that type can be freely substituted for any other
-  resource of that type when used, consumed, traded, etc.
+  Defines if any resource of that type can be freely substituted for any other resource of that type when used, consumed, traded, etc.
   """
   substitutable: Boolean
 
@@ -3377,14 +3079,12 @@ input RecipeResourceUpdateParams {
   image: URI
 
   """
-  (`ResourceSpecification`) The primary resource specification or definition of
-  an existing or potential economic resource. A resource will have only one, as
-  this specifies exactly what the resource is.
+  (`ResourceSpecification`) The primary resource specification or definition of an existing or potential economic resource. A resource will have only one, as this specifies exactly what the resource is.
   """
   resourceConformsTo: ID
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
@@ -3412,7 +3112,7 @@ type ResourceSpecification {
   image: URI
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
@@ -3422,9 +3122,15 @@ type ResourceSpecification {
   note: String
 
   """
-  [UNSTABLE] The default unit used for quantifying this resource type.
+  The default unit used for the resource itself.
+  """
+  defaultUnitOfResource: Unit ## TODO
+
+  """
+  The default unit used for use or work.
   """
   defaultUnitOfEffort: Unit
+
   conformingResources: [EconomicResource!]
 }
 
@@ -3440,7 +3146,7 @@ input ResourceSpecificationCreateParams {
   image: URI
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
@@ -3450,7 +3156,12 @@ input ResourceSpecificationCreateParams {
   note: String
 
   """
-  (`Unit`) [UNSTABLE] The default unit used for quantifying this resource type.
+  (`Unit`) The default unit used for the resource itself.
+  """
+  defaultUnitOfResource: ID ## TODO
+
+  """
+  (`Unit`) The default unit used for use or work.
   """
   defaultUnitOfEffort: ID
 }
@@ -3473,7 +3184,7 @@ input ResourceSpecificationUpdateParams {
   image: URI
 
   """
-  References a concept in a common taxonomy or other classification scheme for purposes of categorization or grouping.
+  References one or more concepts in a common taxonomy or other classification scheme for purposes of categorization or grouping.
   """
   resourceClassifiedAs: [URI!]
 
@@ -3483,14 +3194,18 @@ input ResourceSpecificationUpdateParams {
   note: String
 
   """
-  (`Unit`) [UNSTABLE] The default unit used for quantifying this resource type.
+  (`Unit`) The default unit used for the resource itself.
+  """
+  defaultUnitOfResource: ID ## TODO
+
+  """
+  (`Unit`) The default unit used for use or work.
   """
   defaultUnitOfEffort: ID
 }
 
 """
-Represents many-to-many relationships between intents and commitments or events
-that partially or full satisfy one or more intents.
+Represents many-to-many relationships between intents and commitments or events that partially or full satisfy one or more intents.
 """
 type Satisfaction {
   id: ID!
@@ -3511,9 +3226,7 @@ type Satisfaction {
   resourceQuantity: Measure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: Measure
 
@@ -3540,9 +3253,7 @@ input SatisfactionCreateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -3575,9 +3286,7 @@ input SatisfactionUpdateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -3793,9 +3502,7 @@ type Settlement {
   resourceQuantity: Measure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: Measure
 
@@ -3822,9 +3529,7 @@ input SettlementCreateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -3857,9 +3562,7 @@ input SettlementUpdateParams {
   resourceQuantity: IMeasure
 
   """
-  The amount and unit of the work or use or citation effort-based action. This
-  is often a time duration, but also could be cycle counts or other measures of
-  effort or usefulness.
+  The amount and unit of the work or use or citation effort-based action. This is often a time duration, but also could be cycle counts or other measures of effort or usefulness.
   """
   effortQuantity: IMeasure
 
@@ -3929,18 +3632,25 @@ type ValueFlowsQuery {
   Retrieve all possible kinds of associations that agents may have with one another in this collaboration space
   """
   agentRelationshipRoles(start: ID, limit: Int): [AgentRelationshipRole!]
+
   agreement(id: ID): Agreement
   agreements(start: ID, limit: Int): [Agreement!]
+
   claim(id: ID): Claim
   claims(start: ID, limit: Int): [Claim!]
+
   settlement(id: ID): Settlement
   settlements(start: ID, limit: Int): [Settlement!]
+
   action(id: ID): Action
   actions: [Action!]
+
   resourceSpecification(id: ID): ResourceSpecification
   resourceSpecifications(start: ID, limit: Int): [ResourceSpecification!]
+
   processSpecification(id: ID): ProcessSpecification
   processSpecifications(start: ID, limit: Int): [ProcessSpecification!]
+
   economicEvent(id: ID): EconomicEvent
   economicEvents(start: ID, limit: Int): [EconomicEvent!]
   economicEventsFiltered(
@@ -3951,36 +3661,50 @@ type ValueFlowsQuery {
     startDate: String
     endDate: String
   ): [EconomicEvent!]
+
   economicResource(id: ID): EconomicResource
   economicResources(start: ID, limit: Int): [EconomicResource!]
+
   productBatch(id: ID): ProductBatch
   productBatches(start: ID, limit: Int): [ProductBatch!]
+
   process(id: ID): Process
   processes(start: ID, limit: Int): [Process!]
+
   plan(id: ID): Plan
   plans(start: ID, limit: Int): [Plan!]
+
   commitment(id: ID): Commitment
   commitments(start: ID, limit: Int): [Commitment!]
+
   intent(id: ID): Intent
   intents(start: ID, limit: Int): [Intent!]
+
   fulfillment(id: ID): Fulfillment
   fulfillments(start: ID, limit: Int): [Fulfillment!]
+
   satisfaction(id: ID): Satisfaction
   satisfactions(start: ID, limit: Int): [Satisfaction!]
+
   proposal(id: ID): Proposal
   proposals(start: ID, limit: Int): [Proposal!]
+
   recipeResource(id: ID): RecipeResource
   recipeResources(start: ID, limit: Int): [RecipeResource!]
   recipeProcess(id: ID): RecipeProcess
   recipeProcesses(start: ID, limit: Int): [RecipeProcess!]
   recipeFlow(id: ID): RecipeFlow
   recipeFlows(start: ID, limit: Int): [RecipeFlow!]
+
+  recipeExchange(id: ID): RecipeExchange
+  recipeExchanges(start: ID, limit: Int): [RecipeExchange!]
+
   scenario(id: ID): Scenario
   scenarios(start: ID, limit: Int): [Scenario!]
   scenarioDefinition(id: ID): ScenarioDefinition
   scenarioDefinitions(start: ID, limit: Int): [ScenarioDefinition!]
 
-  # CommonsPub additional queries:
+  ## CPub additional queries:
 
   "Get paginated list of proposals"
   proposalsPages(
@@ -4011,9 +3735,6 @@ type ValueFlowsQuery {
     atLocation: [ID]
     geolocation: GeolocationFilters
     agent: [ID]
-    # provider: [ID]
-    # receiver: [ID]
-    # action: [ID]
   ): [Proposal]
 
   "Get paginated list of active offers (intents with no receiver)"
@@ -4060,7 +3781,214 @@ type ValueFlowsQuery {
   ): AgentsPage!
 }
 
-# CommonsPub additional types:
+
+
+type ValueFlowsMutation {
+  """
+  Registers a new (human) person with the collaboration space
+  """
+  createPerson(person: AgentCreateParams!): PersonResponse
+
+  """
+  Update profile details
+  """
+  updatePerson(person: AgentUpdateParams!): PersonResponse
+
+  """
+  Erase record of a person and thus remove them from the collaboration space
+  """
+  deletePerson(id: ID!): Boolean
+
+  """
+  Registers a new organization (group agent) with the collaboration space
+  """
+  createOrganization(organization: AgentCreateParams!): OrganizationResponse
+
+  """
+  Update organization profile details
+  """
+  updateOrganization(organization: AgentUpdateParams!): OrganizationResponse
+
+  """
+  Erase record of an organization and thus remove it from the collaboration space
+  """
+  deleteOrganization(id: ID!): Boolean
+  
+  createAgentRelationship(
+    relationship: AgentRelationshipCreateParams!
+  ): AgentRelationshipResponse
+  updateAgentRelationship(
+    relationship: AgentRelationshipUpdateParams!
+  ): AgentRelationshipResponse
+  deleteAgentRelationship(id: ID!): Boolean
+  createAgentRelationshipRole(
+    agentRelationshipRole: AgentRelationshipRoleCreateParams
+  ): AgentRelationshipRoleResponse
+  updateAgentRelationshipRole(
+    agentRelationshipRole: AgentRelationshipRoleUpdateParams
+  ): AgentRelationshipRoleResponse
+  deleteAgentRelationshipRole(id: ID!): Boolean
+
+  createAgreement(agreement: AgreementCreateParams): AgreementResponse
+  updateAgreement(agreement: AgreementUpdateParams): AgreementResponse
+  deleteAgreement(id: ID!): Boolean
+
+  createAppreciation(
+    appreciation: AppreciationCreateParams!
+  ): AppreciationResponse
+  updateAppreciation(
+    appreciation: AppreciationUpdateParams!
+  ): AppreciationResponse
+  deleteAppreciation(id: ID!): Boolean
+
+  createClaim(claim: ClaimCreateParams!): ClaimResponse
+  updateClaim(claim: ClaimUpdateParams!): ClaimResponse
+  deleteClaim(id: ID!): Boolean
+
+  createSettlement(settlement: SettlementCreateParams!): SettlementResponse
+  updateSettlement(s0ettlement: SettlementUpdateParams!): SettlementResponse
+  deleteSettlement(id: ID!): Boolean
+
+  createResourceSpecification(
+    resourceSpecification: ResourceSpecificationCreateParams
+  ): ResourceSpecificationResponse
+  updateResourceSpecification(
+    resourceSpecification: ResourceSpecificationUpdateParams
+  ): ResourceSpecificationResponse
+  deleteResourceSpecification(id: ID!): Boolean
+
+  createProcessSpecification(
+    processSpecification: ProcessSpecificationCreateParams
+  ): ProcessSpecificationResponse
+  updateProcessSpecification(
+    processSpecification: ProcessSpecificationUpdateParams
+  ): ProcessSpecificationResponse
+  deleteProcessSpecification(id: ID!): Boolean
+  
+  createEconomicEvent(
+    event: EconomicEventCreateParams!
+    newInventoriedResource: EconomicResourceCreateParams
+  ): EconomicEventResponse
+  updateEconomicEvent(event: EconomicEventUpdateParams!): EconomicEventResponse
+  deleteEconomicEvent(id: ID!): Boolean
+
+  updateEconomicResource(
+    resource: EconomicResourceUpdateParams!
+  ): EconomicResourceResponse
+  deleteEconomicResource(id: ID!): Boolean
+
+  createProductBatch(
+    productBatch: ProductBatchCreateParams!
+  ): ProductBatchResponse
+  updateProductBatch(
+    productBatch: ProductBatchUpdateParams!
+  ): ProductBatchResponse
+  deleteProductBatch(id: ID!): Boolean
+
+  createProcess(process: ProcessCreateParams!): ProcessResponse
+  updateProcess(process: ProcessUpdateParams!): ProcessResponse
+  deleteProcess(id: ID!): Boolean
+
+  createPlan(plan: PlanCreateParams!): PlanResponse
+  updatePlan(plan: PlanUpdateParams!): PlanResponse
+  deletePlan(id: ID!): Boolean
+
+  createCommitment(commitment: CommitmentCreateParams): CommitmentResponse
+  updateCommitment(commitment: CommitmentUpdateParams): CommitmentResponse
+  deleteCommitment(id: ID!): Boolean
+
+  createIntent(intent: IntentCreateParams): IntentResponse
+
+  """
+  Creates a new offer for the logged in user, will ignore any provider specified.
+  """
+  createOffer(intent: IntentCreateParams): IntentResponse
+
+  """
+  Creates a new need for the logged in user, will ignore any receiver specified.
+  """
+  createNeed(intent: IntentCreateParams): IntentResponse
+
+  updateIntent(intent: IntentUpdateParams): IntentResponse
+  deleteIntent(id: ID!): Boolean
+
+  createFulfillment(fulfillment: FulfillmentCreateParams!): FulfillmentResponse
+  updateFulfillment(fulfillment: FulfillmentUpdateParams!): FulfillmentResponse
+  deleteFulfillment(id: ID!): Boolean
+
+  createSatisfaction(
+    satisfaction: SatisfactionCreateParams
+  ): SatisfactionResponse
+  updateSatisfaction(
+    satisfaction: SatisfactionUpdateParams
+  ): SatisfactionResponse
+  deleteSatisfaction(id: ID!): Boolean
+
+  createProposal(proposal: ProposalCreateParams): ProposalResponse
+  updateProposal(proposal: ProposalUpdateParams): ProposalResponse
+  deleteProposal(id: ID!): Boolean
+
+  """
+  Include an existing intent as part of a proposal.
+  @param publishedIn the (`Proposal`) to include the intent in
+  @param publishes the (`Intent`) to include as part of the proposal
+  """
+  proposeIntent(
+    publishedIn: ID!
+    publishes: ID!
+    reciprocal: Boolean
+  ): ProposedIntentResponse
+  deleteProposedIntent(id: ID!): Boolean
+
+  """
+  Send a proposal to another agent.
+  @param proposed the (`Proposal`) to send to an involved agent
+  @param proposedTo the (`Agent`) to include in the proposal
+  """
+  proposeTo(proposed: ID!, proposedTo: ID!): ProposedToResponse
+  deleteProposedTo(id: ID!): Boolean
+
+  createRecipeFlow(recipeFlow: RecipeFlowCreateParams): RecipeFlowResponse
+  updateRecipeFlow(recipeFlow: RecipeFlowUpdateParams): RecipeFlowResponse
+  deleteRecipeFlow(id: ID!): Boolean
+  createRecipeProcess(
+    recipeProcess: RecipeProcessCreateParams
+  ): RecipeProcessResponse
+  updateRecipeProcess(
+    recipeProcess: RecipeProcessUpdateParams
+  ): RecipeProcessResponse
+  deleteRecipeProcess(id: ID!): Boolean
+  createRecipeResource(
+    recipeResource: RecipeResourceCreateParams
+  ): RecipeResourceResponse
+  updateRecipeResource(
+    recipeResource: RecipeResourceUpdateParams
+  ): RecipeResourceResponse
+  deleteRecipeResource(id: ID!): Boolean
+
+  createRecipeExchange(
+    recipeExchange: RecipeExchangeCreateParams
+  ): RecipeExchangeResponse
+  updateRecipeExchange(
+    recipeExchange: RecipeExchangeUpdateParams
+  ): RecipeExchangeResponse
+  deleteRecipeExchange(id: ID!): Boolean
+
+  createScenario(plan: ScenarioCreateParams!): ScenarioResponse
+  updateScenario(plan: ScenarioUpdateParams!): ScenarioResponse
+  deleteScenario(id: ID!): Boolean
+  createScenarioDefinition(
+    plan: ScenarioDefinitionCreateParams!
+  ): ScenarioDefinitionResponse
+  updateScenarioDefinition(
+    plan: ScenarioDefinitionUpdateParams!
+  ): ScenarioDefinitionResponse
+  deleteScenarioDefinition(id: ID!): Boolean
+}
+
+
+
+## CPub additional types:
 
 "A page of agents"
 type AgentsPage {
@@ -4103,3 +4031,5 @@ type EconomicResourcePage {
   edges: [EconomicResource!]!
   totalCount: Int!
 }
+
+

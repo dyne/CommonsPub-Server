@@ -38,6 +38,19 @@ defmodule Measurement.MeasuresTest do
       assert_measure(measure)
     end
 
+    test "creates two measures with the same attributes" do
+      user = fake_user!()
+      unit = fake_unit!(user)
+      attrs = measure()
+      assert {:ok, measure1} = Measures.create(user, unit, attrs)
+      assert_measure(measure1)
+      assert {:ok, measure2} = Measures.create(user, unit, attrs)
+      assert_measure(measure2)
+      assert measure1.unit_id == measure2.unit_id
+      assert measure1.has_numerical_value == measure2.has_numerical_value
+      assert measure1.id != measure2.id # TODO: should we re-use the same measurement instead of storing duplicates? (but would have to be careful to insert a new measurement rather than update)
+    end
+
     test "fails when missing attributes" do
       user = fake_user!()
       unit = fake_unit!(user)

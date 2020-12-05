@@ -2,7 +2,8 @@
 defmodule ValueFlows.Proposal.Proposals do
   import CommonsPub.Common, only: [maybe_put: 3, attr_get_id: 2]
 
-  alias CommonsPub.{Activities, Common, Feeds, Repo}
+  alias CommonsPub.{Activities, Common, Feeds}
+  alias CommonsPub.Repo
   alias CommonsPub.GraphQL.{Fields, Page}
   alias CommonsPub.Contexts
   alias CommonsPub.Feeds.FeedActivities

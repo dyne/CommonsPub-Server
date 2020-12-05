@@ -26,7 +26,7 @@ defmodule ValueFlows.Observation.EconomicEvent.EventsGraphQLTest do
       user = fake_user!()
       unit = fake_unit!(user)
 
-      provider = fake_agent!()
+      provider = fake_agent_from_user!(user)
       receiver = fake_agent!()
 
       action = action()
@@ -38,9 +38,9 @@ defmodule ValueFlows.Observation.EconomicEvent.EventsGraphQLTest do
           action: action.id,
           input_of: fake_process!(user).id,
           output_of: fake_process!(user).id,
-          resource_conforms_to: fake_resource_specification!(user).id,
-          to_resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id,
-          resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id
+          resource_conforms_to: fake_resource_specification!(provider).id,
+          resource_inventoried_as: fake_economic_resource!(provider, %{}, unit).id,
+          to_resource_inventoried_as: fake_economic_resource!(receiver, %{}, unit).id,
         }, unit)
 
       q = economic_event_query()
@@ -56,7 +56,7 @@ defmodule ValueFlows.Observation.EconomicEvent.EventsGraphQLTest do
 
       unit = fake_unit!(user)
 
-      provider = fake_agent!()
+      provider = fake_agent_from_user!(user)
       receiver = fake_agent!()
       action = action()
 
@@ -72,8 +72,8 @@ defmodule ValueFlows.Observation.EconomicEvent.EventsGraphQLTest do
           output_of: fake_process!(user).id,
           triggered_by: triggered_by.id,
           resource_conforms_to: fake_resource_specification!(user).id,
-          to_resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id,
           resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id,
+          to_resource_inventoried_as: fake_economic_resource!(receiver, %{}, unit).id,
           at_location: location.id
         }, unit)
 

@@ -215,17 +215,18 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
     end
 
     test "Returns a list of transfer/move EconomicEvents with the resource defined as the toResourceInventoriedAs" do
-      user = fake_user!()
       alice = fake_user!()
-      unit = fake_unit!(user)
+      bob = fake_user!()
 
-      resource = fake_economic_resource!(user, %{}, unit)
+      unit = fake_unit!(alice)
+
+      resource = fake_economic_resource!(bob, %{}, unit)
 
       input_events =
         some(3, fn ->
-          fake_economic_event!(user, %{
-            provider: user.id,
-            receiver: alice.id,
+          fake_economic_event!(alice, %{
+            provider: alice.id,
+            receiver: bob.id,
             to_resource_inventoried_as: resource.id,
             action: "transfer"
           }, unit)
@@ -233,16 +234,17 @@ defmodule ValueFlows.Observation.EconomicResource.GraphQLTest do
 
       _other_events =
         some(5, fn ->
-          fake_economic_event!(user, %{
-            provider: user.id,
-            receiver: alice.id,
+          fake_economic_event!(alice, %{
+            provider: alice.id,
+            receiver: bob.id,
             to_resource_inventoried_as: resource.id,
             action: "use"
           }, unit)
         end)
 
       q = economic_resource_query(fields: [trace: [:id]])
-      conn = user_conn(user)
+
+      conn = user_conn(alice)
 
       assert resource = grumble_post_key(q, conn, :economic_resource, %{id: resource.id})
       assert Enum.count(resource["trace"]) == 3

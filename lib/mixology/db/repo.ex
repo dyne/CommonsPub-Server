@@ -65,6 +65,7 @@ defmodule CommonsPub.Repo do
       case ret do
         :ok -> :ok
         {:ok, v} -> v
+        # {:ok, v, v2} -> {:ok, v, v2}
         {:error, reason} -> rollback_error(reason)
         _ -> rollback_unexpected(ret)
       end

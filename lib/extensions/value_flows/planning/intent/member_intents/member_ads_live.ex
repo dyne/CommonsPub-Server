@@ -39,7 +39,7 @@ defmodule CommonsPub.Web.MemberLive.MemberAdsLive do
         assigns.current_user.id
       )
 
-    IO.inspect(ads, label: "ADS:")
+    # IO.inspect(ads, label: "ADS:")
 
     assign(socket,
       ads: ads.edges,

@@ -11,7 +11,7 @@ defmodule CommonsPub.Users.User do
   alias Ecto.Changeset
   # alias CommonsPub.Characters.Character
   # alias CommonsPub.Feeds.Feed
-  alias CommonsPub.Uploads.Content
+  # alias CommonsPub.Uploads.Content
   alias CommonsPub.Users
   alias CommonsPub.Users.{LocalUser, User}
 
@@ -40,8 +40,8 @@ defmodule CommonsPub.Users.User do
 
     field(:website, :string)
 
-    belongs_to(:icon, Content)
-    belongs_to(:image, Content)
+    belongs_to(:icon, CommonsPub.Uploads.Content)
+    belongs_to(:image, CommonsPub.Uploads.Content)
 
     field(:is_public, :boolean, virtual: true)
     field(:published_at, :utc_datetime_usec)

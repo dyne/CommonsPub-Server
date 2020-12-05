@@ -32,10 +32,13 @@ defmodule ValueFlows.Proposal.GraphQLTest do
       user = fake_user!()
       parent = fake_user!()
       location = fake_geolocation!(user)
-      proposal = fake_proposal!(user, %{
-        in_scope_of: [parent.id],
-        eligible_location_id: location.id
-      })
+
+      proposal =
+        fake_proposal!(user, %{
+          in_scope_of: [parent.id],
+          eligible_location_id: location.id
+        })
+
       intent = fake_intent!(user)
 
       some(5, fn ->
@@ -153,6 +156,30 @@ defmodule ValueFlows.Proposal.GraphQLTest do
       assert Enum.count(fetched) == 2
       assert List.first(fetched)["id"] == after_proposal.id
     end
+
+    test "fetches several pages of proposals" do
+      user = fake_user!()
+      proposals = some(6, fn -> fake_proposal!(user) end)
+
+      q = proposals_pages_query()
+      conn = user_conn(user)
+      vars = %{limit: 2}
+      assert response = grumble_post_key(q, conn, :proposalsPages, vars)
+
+      assert %{
+               "edges" => fetched,
+               "totalCount" => 6,
+               "pageInfo" => %{"endCursor" => end_cursor, "hasNextPage" => true}
+             } = response
+
+      assert Enum.count(fetched) == 2
+
+      after_cursor = List.first(end_cursor)
+      vars = %{after: after_cursor, limit: 4}
+      assert %{"edges" => page2} = grumble_post_key(q, conn, :proposalsPages, vars)
+      assert Enum.count(page2) == 4
+      # assert List.first(fetched)["id"] == after_cursor
+   end
   end
 
   describe "createProposal" do

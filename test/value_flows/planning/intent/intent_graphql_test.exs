@@ -298,17 +298,17 @@ defmodule ValueFlows.Planning.Intent.GraphQLTest do
       user = fake_user!()
       unit = fake_unit!(user)
 
-      q = create_intent_mutation(fields: [image: [:url]])
+      q = create_intent_mutation(fields: [:image])
       conn = user_conn(user)
 
       vars = %{
         intent:
-          intent_input(%{"image" => %{"url" => "https://via.placeholder.com/150.png"}})
+          intent_input(%{"image" => "https://via.placeholder.com/150.png"})
       }
 
       assert intent = grumble_post_key(q, conn, :create_intent, vars)["intent"]
       assert_intent(intent)
-      assert intent["image"]["url"] == "https://via.placeholder.com/150.png"
+      assert intent["image"] == "https://via.placeholder.com/150.png"
     end
 
     test "create an intent with tags" do
@@ -409,19 +409,19 @@ defmodule ValueFlows.Planning.Intent.GraphQLTest do
     test "updates an existing intent with a url image" do
       user = fake_user!()
       intent = fake_intent!(user)
-      q = update_intent_mutation(fields: [image: [:url]])
+      q = update_intent_mutation(fields: [:image])
       conn = user_conn(user)
 
       vars = %{
         intent:
           intent_input(%{
             "id" => intent.id,
-            "image" => %{"url" => "https://via.placeholder.com/250.png"}
+            "image" => "https://via.placeholder.com/250.png"
           })
       }
 
       assert resp = grumble_post_key(q, conn, :update_intent, vars)["intent"]
-      assert resp["image"]["url"] == "https://via.placeholder.com/250.png"
+      assert resp["image"] == "https://via.placeholder.com/250.png"
     end
 
     test "updates an existing intent with an action" do

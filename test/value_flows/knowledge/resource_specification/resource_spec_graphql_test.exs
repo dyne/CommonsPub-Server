@@ -90,6 +90,29 @@ defmodule ValueFlows.Knowledge.ResourceSpecification.GraphQLTest do
       assert_resource_specification(spec)
     end
 
+    test "creates a new resource specification with a url image" do
+      user = fake_user!()
+
+      q = create_resource_specification_mutation(fields: [:image])
+      conn = user_conn(user)
+
+      vars = %{
+        resource_specification:
+          resource_specification_input(%{
+            "image" => "https://via.placeholder.com/150.png"
+          })
+      }
+
+      assert spec =
+               grumble_post_key(q, conn, :create_resource_specification, vars)[
+                 "resourceSpecification"
+               ]
+
+      assert_resource_specification(spec)
+
+      assert spec["image"] == "https://via.placeholder.com/150.png"
+    end
+
     # test "create a new resource specification with a scope" do
     #   user = fake_user!()
     #   parent = fake_user!()

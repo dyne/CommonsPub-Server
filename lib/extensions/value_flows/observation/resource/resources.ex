@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
-  import CommonsPub.Common, only: [maybe_put: 3, attr_get_id: 2]
+  import CommonsPub.Common, only: [maybe_put: 3, attr_get_id: 2, maybe_get_id: 1]
 
   alias CommonsPub.{Activities, Common, Feeds, Repo}
   alias CommonsPub.GraphQL.{Fields, Page}
@@ -113,7 +113,7 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
   # @spec create(User.t(), attrs :: map) :: {:ok, EconomicResource.t()} | {:error, Changeset.t()}
   def create(%User{} = creator, attrs) when is_map(attrs) do
     Repo.transact_with(fn ->
-      attrs = prepare_attrs(attrs)
+      attrs = prepare_attrs(attrs, creator)
 
       with {:ok, resource} <- Repo.insert(EconomicResource.create_changeset(creator, attrs)),
            {:ok, resource} <- ValueFlows.Util.try_tag_thing(creator, resource, attrs),
@@ -210,9 +210,9 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
     :ok
   end
 
-  defp prepare_attrs(attrs) do
+  defp prepare_attrs(attrs, creator \\ nil) do
     attrs
-    |> maybe_put(:primary_accountable_id, attr_get_id(attrs, :primary_accountable))
+    |> maybe_put(:primary_accountable_id, attr_get_id(attrs, :primary_accountable) || maybe_get_id(creator))
     |> maybe_put(:context_id,
       attrs |> Map.get(:in_scope_of) |> CommonsPub.Common.maybe(&List.first/1)
     )
@@ -225,14 +225,15 @@ defmodule ValueFlows.Observation.EconomicResource.EconomicResources do
   end
 
   defp parse_measurement_attrs(attrs) do
-    Enum.reduce(attrs, %{}, fn {k, v}, acc ->
-      if is_map(v) and Map.has_key?(v, :has_unit) do
-        v = CommonsPub.Common.map_key_replace(v, :has_unit, :unit_id)
-        # I have no idea why the numerical value isn't auto converted
-        Map.put(acc, k, v)
-      else
-        Map.put(acc, k, v)
-      end
-    end)
+    for {k, v} <- attrs, into: %{} do
+      v =
+        if is_map(v) and Map.has_key?(v, :has_unit) do
+          CommonsPub.Common.map_key_replace(v, :has_unit, :unit_id)
+        else
+          v
+        end
+
+      {k, v}
+    end
   end
 end

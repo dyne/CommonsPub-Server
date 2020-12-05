@@ -32,6 +32,11 @@ defmodule Measurement.Measure do
   @required ~w(has_numerical_value)a
   @cast @required ++ ~w()a
 
+  @doc "Copy the attributes of a measure required to create a new one."
+  def copy(measure) do
+    CommonsPub.Common.maybe(measure, &Map.take(&1, [:has_numerical_value, :unit_id, :creator_id]))
+  end
+
   def create_changeset(
         %User{} = creator,
         %Unit{} = unit,

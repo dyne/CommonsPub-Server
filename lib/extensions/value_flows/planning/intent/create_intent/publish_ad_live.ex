@@ -26,14 +26,14 @@ defmodule CommonsPub.Web.My.PublishAdLive do
 
   def publish_ad(data, socket) do
     intent = input_to_atoms(data)
-    IO.inspect(intent, label: "intent to create")
+    # IO.inspect(intent, label: "intent to create")
 
     {:ok, new_intent} =
       ValueFlows.Planning.Intent.GraphQL.create_intent(%{intent: intent}, %{
         context: %{current_user: socket.assigns.current_user}
       })
 
-    IO.inspect(new_intent)
+    # IO.inspect(new_intent)
 
     {:noreply,
      socket

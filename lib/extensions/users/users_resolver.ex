@@ -399,12 +399,13 @@ defmodule CommonsPub.Web.GraphQL.UsersResolver do
   end
 
   def login(login, password) do
-    case Users.one([:default, email: login]) do
+    case Users.get(login) do
       {:ok, user} ->
         user_create_session(user, password)
 
-      _ ->
-        case Users.one([:default, username: login]) do
+      e ->
+        IO.inspect(e)
+        case Users.one([:default, email: login]) do
           {:ok, user} ->
             user_create_session(user, password)
 

@@ -28,12 +28,15 @@ defmodule CommonsPub.Uploads do
           {:ok, Content.t()} | {:error, Changeset.t()}
   def upload(upload_def, uploader, file, attrs) do
     file = CommonsPub.Utils.Web.CommonHelper.input_to_atoms(file)
+    # IO.inspect(upload: file)
 
     with {:ok, file} <- parse_file(file),
          :ok <- allow_media_type(upload_def, file),
          {:ok, content} <- insert_content(upload_def, uploader, file, attrs),
          {:ok, url} <- remote_url(content) do
-      {:ok, %{content | url: url}}
+          content = %{content | url: url}
+          # IO.inspect(content: content)
+      {:ok, content}
     end
   end
 

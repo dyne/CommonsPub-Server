@@ -127,7 +127,12 @@ defmodule ValueFlows.Util.GraphQL do
     {:ok, Map.get(thing, :onhand_quantity)}
   end
 
-  def onhand_quantity_edge(_, _, _) do
-    {:ok, nil}
+  def onhand_quantity_edge(_, _, _), do: {:ok, nil}
+
+  def image_content_url(%{image_id: id} = thing, _, info) when not is_nil(id) do
+    {:ok, ValueFlows.Util.image_url(thing)}
   end
+
+  def image_content_url(_, _, _), do: {:ok, nil}
+
 end

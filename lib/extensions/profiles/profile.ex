@@ -10,7 +10,7 @@ defmodule CommonsPub.Profiles.Profile do
   # alias CommonsPub.Profiles.Profile
   # alias CommonsPub.Feeds.Feed
   alias CommonsPub.Users.User
-  alias CommonsPub.Uploads.Content
+  # alias CommonsPub.Uploads.Content
 
   # alias Pointers.Pointer
 
@@ -22,8 +22,8 @@ defmodule CommonsPub.Profiles.Profile do
 
     field(:extra_info, :map)
 
-    belongs_to(:icon, Content)
-    belongs_to(:image, Content)
+    belongs_to(:icon, CommonsPub.Uploads.Content)
+    belongs_to(:image, CommonsPub.Uploads.Content)
 
     belongs_to(:geolocation, Geolocation)
 

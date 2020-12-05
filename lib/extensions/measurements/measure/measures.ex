@@ -100,7 +100,8 @@ defmodule Measurement.Measure.Measures do
   end
 
   defp insert_measure(creator, unit, attrs) do
-    # use upsert
+    # TODO: use upsert?
+    # TODO: should we re-use the same measurement instead of storing duplicates? (but would have to be careful to insert a new measurement rather than update)
     Repo.insert(Measurement.Measure.create_changeset(creator, unit, attrs)
       # on_conflict: [set: [has_numerical_value: attrs.has_numerical_value]]
     )

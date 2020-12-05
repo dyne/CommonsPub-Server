@@ -20,7 +20,7 @@ defmodule CommonsPub.Users.Web.AccountHelper do
   end
 
   def create_session(%{login: login, password: password}) do
-    case Users.one([:default, username: login]) do
+    case Users.get(login) do
       {:ok, user} ->
         session_token(user, password)
 

@@ -234,21 +234,21 @@ defmodule CommonsPub.ReleaseTasks do
 
   def user_set_email_confirmed(username) do
     Repo.transact_with(fn ->
-      u = CommonsPub.Users.get(username)
+      u = CommonsPub.Users.get!(username)
       Users.confirm_email(u)
     end)
   end
 
   def make_instance_admin(username) do
     Repo.transact_with(fn ->
-      u = CommonsPub.Users.get(username)
+      u = CommonsPub.Users.get!(username)
       Users.make_instance_admin(u)
     end)
   end
 
   def unmake_instance_admin(username) do
     Repo.transact_with(fn ->
-      u = CommonsPub.Users.get(username)
+      u = CommonsPub.Users.get!(username)
       Users.unmake_instance_admin(u)
     end)
   end

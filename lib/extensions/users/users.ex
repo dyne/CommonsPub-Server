@@ -46,10 +46,14 @@ defmodule CommonsPub.Users do
   @deleted_user_id "REA11YVERYDE1ETED1DENT1TY1"
   def deleted_user_id(), do: @deleted_user_id
 
-  def get(username) do
-    with {:ok, u} <- one(preset: :local_user, username: username) do
+  def get!(email_or_username) do
+    with {:ok, u} <- get(email_or_username) do
       u
     end
+  end
+
+  def get(email_or_username) do
+    one(preset: :local_user, email_or_username: email_or_username)
   end
 
   def one(filters), do: Repo.single(Queries.query(User, filters))

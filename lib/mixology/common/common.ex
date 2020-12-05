@@ -93,11 +93,15 @@ defmodule CommonsPub.Common do
     if is_map(attrs) and Map.has_key?(attrs, field_name) do
       attr = Map.get(attrs, field_name)
 
-      if is_map(attr) and Map.has_key?(attr, :id) do
-        attr.id
-      else
-        attr
-      end
+      maybe_get_id(attr)
+    end
+  end
+
+  def maybe_get_id(attr) do
+    if is_map(attr) and Map.has_key?(attr, :id) do
+      attr.id
+    else
+      attr
     end
   end
 

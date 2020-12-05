@@ -23,7 +23,7 @@ defmodule ValueFlows.Observation.Process do
   pointable_schema do
     field(:name, :string)
     field(:note, :string)
-    # belongs_to(:image, Content)
+    # belongs_to(:image, CommonsPub.Uploads.Content)
 
     field(:has_beginning, :utc_datetime_usec)
     field(:has_end, :utc_datetime_usec)

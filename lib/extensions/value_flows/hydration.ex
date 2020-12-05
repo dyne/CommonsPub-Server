@@ -114,7 +114,7 @@ defmodule ValueFlows.Hydration do
           resolve: &ValueFlows.Util.GraphQL.scope_edge/3
         ],
         image: [
-          resolve: &UploadResolver.image_content_edge/3
+          resolve: &ValueFlows.Util.GraphQL.image_content_url/3
         ],
         resource_classified_as: [
           resolve: &ValueFlows.Util.GraphQL.fetch_classifications_edge/3
@@ -251,7 +251,7 @@ defmodule ValueFlows.Hydration do
           resolve: &ValueFlows.Util.GraphQL.current_location_edge/3
         ],
         image: [
-          resolve: &UploadResolver.image_content_edge/3
+          resolve: &ValueFlows.Util.GraphQL.image_content_url/3
         ],
         available_quantity: [
           resolve: &ValueFlows.Util.GraphQL.available_quantity_edge/3
@@ -319,6 +319,9 @@ defmodule ValueFlows.Hydration do
           resolve:
             &ValueFlows.Knowledge.ResourceSpecification.GraphQL.fetch_default_unit_of_effort_edge/3
         ],
+        image: [
+          resolve: &ValueFlows.Util.GraphQL.image_content_url/3
+        ]
         # conforming_resources: [
         #   resolve: %ValueFlows.Knowledge.ResourceSpecification.GraphQL.fetch_conforming_resources_edge/3
         # ]

@@ -19,13 +19,17 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
       unit = fake_unit!(user)
 
       event =
-        fake_economic_event!(user, %{
-          input_of: fake_process!(user).id,
-          output_of: fake_process!(user).id,
-          resource_conforms_to: fake_resource_specification!(user).id,
-          to_resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id,
-          resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id
-        }, unit)
+        fake_economic_event!(
+          user,
+          %{
+            input_of: fake_process!(user).id,
+            output_of: fake_process!(user).id,
+            resource_conforms_to: fake_resource_specification!(user).id,
+            to_resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id,
+            resource_inventoried_as: fake_economic_resource!(user, %{}, unit).id
+          },
+          unit
+        )
 
       assert {:ok, fetched} = EconomicEvents.one(id: event.id)
       assert_economic_event(fetched)
@@ -91,7 +95,9 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
         )
 
       assert {:ok, resources} = EconomicEvents.track(event)
-      assert Enum.map(resources, & &1.id) == [resource.id, another_resource.id]
+
+      assert Enum.sort(Enum.map(resources, & &1.id)) ==
+               Enum.sort([resource.id, another_resource.id])
     end
 
     test "if it is a transfer or move event, the EconomicResource labelled toResourceInventoriedAs" do
@@ -101,12 +107,16 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
       resource = fake_economic_resource!(user, %{}, unit)
 
       event =
-        fake_economic_event!(user, %{
-          action: "transfer",
-          to_resource_inventoried_as: resource.id,
-          provider: user.id,
-          receiver: user.id
-        }, unit)
+        fake_economic_event!(
+          user,
+          %{
+            action: "transfer",
+            to_resource_inventoried_as: resource.id,
+            provider: user.id,
+            receiver: user.id
+          },
+          unit
+        )
 
       assert {:ok, [tracked_resource]} = EconomicEvents.track(event)
       assert resource.id == tracked_resource.id
@@ -120,14 +130,18 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
       process = fake_process!(user)
 
       event =
-        fake_economic_event!(user, %{
-          action: "transfer",
-          output_of: process.id,
-          resource_inventoried_as: resource.id,
-          # to_resource_inventoried_as: resource.id,
-          provider: user.id,
-          receiver: user.id
-        }, unit)
+        fake_economic_event!(
+          user,
+          %{
+            action: "transfer",
+            output_of: process.id,
+            resource_inventoried_as: resource.id,
+            # to_resource_inventoried_as: resource.id,
+            provider: user.id,
+            receiver: user.id
+          },
+          unit
+        )
 
       assert {:ok, [tracked_resource]} = EconomicEvents.track(event)
       assert resource.id == tracked_resource.id
@@ -207,7 +221,7 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
   describe "create" do
     test "can create an economic event" do
       user = fake_user!()
-      provider = fake_agent!()
+      provider = fake_agent_from_user!(user)
       receiver = fake_agent!()
       action = action()
 
@@ -226,6 +240,25 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
       assert event.receiver.id == receiver.id
       assert event.action.label == action.label
       assert event.creator.id == user.id
+    end
+
+    test "cannot create an economic event as someone else" do
+      user = fake_user!()
+      provider = fake_agent!()
+      receiver = fake_agent!()
+      action = action()
+
+      assert {:error, _e} =
+               EconomicEvents.create(
+                 user,
+                 economic_event(%{
+                   provider: provider.id,
+                   receiver: receiver.id,
+                   action: action.id
+                 })
+               )
+
+
     end
 
     test "can create an economic event with context" do
@@ -324,6 +357,7 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
       assert event.resource_conforms_to.id == attrs.resource_conforms_to
     end
 
+    @tag :skip
     test "can create an economic event with resource_classified_as" do
       user = fake_user!()
 
@@ -391,10 +425,19 @@ defmodule ValueFlows.Observation.EconomicEvent.EconomicEventsTest do
       economic_event = fake_economic_event!(user)
 
       assert {:ok, updated} =
-               EconomicEvents.update(economic_event, economic_event(%{note: "test"}))
+               EconomicEvents.update(user, economic_event, economic_event(%{note: "test"}))
 
       assert_economic_event(updated)
       assert economic_event != updated
+    end
+
+    test "cannot update somebody else's event" do
+      alice = fake_user!()
+      bob = fake_user!()
+      economic_event = fake_economic_event!(alice)
+
+      assert {:error, _e} =
+               EconomicEvents.update(bob, economic_event, economic_event(%{note: "test"}))
     end
   end
 

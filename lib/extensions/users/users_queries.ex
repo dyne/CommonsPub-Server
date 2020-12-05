@@ -112,14 +112,21 @@ defmodule CommonsPub.Users.Queries do
   def filter(q, {:local_user, ids}) when is_list(ids),
     do: where(q, [user: u], u.local_user_id in ^ids)
 
-  def filter(q, {:username, username}),
-    do: CommonsPub.Characters.Queries.filter(q, {:username, username})
+  # def filter(q, {:username, username}),
+  #   do: CommonsPub.Characters.Queries.filter(q, {:username, username})
+
+  def filter(q, {:username, username}) when is_binary(username) do
+    where(q, [character: c], c.preferred_username == ^username)
+  end
 
   def filter(q, {:email, email}) when is_binary(email),
     do: where(q, [local_user: l], l.email == ^email)
 
   def filter(q, {:email, emails}) when is_list(emails),
     do: where(q, [local_user: l], l.email in ^emails)
+
+  def filter(q, {:email_or_username, email_or_username}) when is_binary(email_or_username),
+    do: where(q, [local_user: l, character: c], l.email == ^email_or_username or c.preferred_username == ^email_or_username)
 
   def filter(q, {:order, [asc: :created]}), do: order_by(q, [user: u], asc: u.id)
   def filter(q, {:order, [desc: :created]}), do: order_by(q, [user: u], desc: u.id)

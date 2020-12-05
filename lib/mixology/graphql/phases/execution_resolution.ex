@@ -20,7 +20,7 @@ defmodule CommonsPub.Web.GraphQL.Phase.ExecutionResolution do
     error in Ecto.Query.CastError ->
       debug_exception("You seem to have provided an incorrect data type (eg. an invalid ID)", error, __STACKTRACE__, :error)
     error in Ecto.ConstraintError ->
-      debug_exception("You seem to be trying to insert duplicated data", error, __STACKTRACE__, :error)
+      debug_exception("You seem to to refering to an invalid object ID, or trying to insert duplicated data", error, __STACKTRACE__, :error)
     error ->
       debug_exception("The API encountered an exceptional error", error, __STACKTRACE__, :error)
   catch

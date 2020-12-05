@@ -25,7 +25,7 @@ defmodule ValueFlows.Observation.EconomicResource do
     field(:note, :string)
     field(:tracking_identifier, :string)
 
-    belongs_to(:image, Content)
+    belongs_to(:image, CommonsPub.Uploads.Content)
 
     field(:classified_as, {:array, :string}, virtual: true)
 

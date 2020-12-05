@@ -347,7 +347,7 @@ defmodule ValueFlows.Observation.EconomicEvent.GraphQL do
          :ok <- ensure_update_permission(user, event),
          {:ok, uploads} <- UploadResolver.upload(user, changes, info),
          changes = Map.merge(changes, uploads),
-         {:ok, event} <- EconomicEvents.update(event, changes) do
+         {:ok, event} <- EconomicEvents.update(user, event, changes) do
       {:ok, %{economic_event: event}}
     end
   end
